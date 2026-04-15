@@ -1,0 +1,12 @@
+{
+  "name": "clinica-agenda",
+  "version": "1.0.0",
+  "description": "Sistema de agendamento clínico",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
