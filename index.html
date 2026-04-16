@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PsicoTEAM</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,sans-serif}
+:root{
+  --color-background-primary:#fff;
+  --color-background-secondary:#f5f7fa;
+  --color-text-primary:#1a1a2e;
+  --color-text-secondary:#6b7280;
+  --color-border-secondary:#d1d5db;
+  --color-border-tertiary:#e5e7eb;
+  --border-radius-md:6px;
+  --border-radius-lg:10px;
+  --font-sans:system-ui,sans-serif;
+}
+html,body{min-height:100%;background:#f0f4f8;margin:0}
+body{display:flex;align-items:flex-start;justify-content:center;padding:0}
+
+/* SAVE INDICATOR */
+#save-indicator{position:fixed;top:12px;right:16px;font-size:11px;padding:4px 10px;border-radius:20px;font-weight:500;z-index:100;transition:opacity .4s}
+#save-indicator.ok{background:#d1fae5;color:#065f46}
+#save-indicator.saving{background:#fef9c3;color:#713f12}
+#save-indicator.err{background:#fee2e2;color:#991b1b}
+#save-indicator.hidden{opacity:0;pointer-events:none}
+
+.app{display:flex;width:100%;min-height:100vh;border:none;border-radius:0;overflow:hidden;background:var(--color-background-primary)}
+.sidebar{width:200px;flex-shrink:0;border-right:0.5px solid var(--color-border-tertiary);background:#1a1a2e;display:flex;flex-direction:column;min-height:100vh;overflow-y:auto}
+.sidebar-logo{padding:14px 14px 10px;color:#fff;font-size:14px;font-weight:500;border-bottom:1px solid rgba(255,255,255,.2)}
+.sidebar-section{padding:8px 10px 4px;font-size:10px;color:rgba(0,163,224,.8);font-weight:500;letter-spacing:.05em;margin-top:4px}
+.nav-btn{background:none;border:none;text-align:left;padding:7px 12px;cursor:pointer;font-size:12px;color:rgba(255,255,255,.85);display:flex;align-items:center;gap:7px;width:100%;border-radius:0}
+.nav-btn:hover{background:rgba(255,255,255,.15);color:#fff}
+.nav-btn.active{background:rgba(0,163,224,.35);color:#fff;font-weight:500}
+.agenda-item{display:flex;align-items:center;justify-content:space-between;padding:5px 12px;cursor:pointer;font-size:12px;color:rgba(255,255,255,.8)}
+.agenda-item:hover{background:rgba(255,255,255,.12)}
+.agenda-item.active{background:rgba(255,255,255,.2);color:#fff}
+.agenda-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{padding:10px 16px;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.topbar h2{font-size:14px;font-weight:500;color:var(--color-text-primary)}
+.topbar-actions{display:flex;gap:6px;flex-wrap:wrap}
+.btn{padding:6px 12px;border-radius:var(--border-radius-md);cursor:pointer;font-size:12px;font-weight:500;border:none}
+.btn-blue{background:#00a3e0;color:#fff}
+.btn-blue:hover{background:#0090c5}
+.btn-green{background:#4caf50;color:#173404}
+.btn-green:hover{background:#3e9942}
+.btn-outline{background:none;border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary)}
+.btn-outline:hover{background:var(--color-background-secondary)}
+.btn-red{background:#E24B4A;color:#fff}
+.content{flex:1;overflow:visible;padding:14px}
+
+/* TABLE */
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:650px;font-size:11px}
+th,td{border:1px solid #bbb;padding:0;text-align:center;vertical-align:middle;height:36px}
+th{background:#006fa8;color:#fff;font-weight:500;font-size:11px;padding:5px 3px}
+th.hora-col{width:76px}
+td.hora-cell{background:#e0f4fb;color:#005f80;font-weight:500;font-size:11px;width:76px}
+td.almoco{background:#00bcd4;color:#003a42;font-weight:500;font-size:11px}
+td.reuniao{background:#e040fb;color:#3a004a;font-weight:500;font-size:11px}
+td.paciente{background:#4caf50;color:#0a2e0c;cursor:pointer;font-size:11px;padding:2px 3px}
+td.paciente span.conv{display:block;font-size:9px;opacity:.8}
+td.paciente:hover{filter:brightness(.9)}
+td.vazio{background:#fff;cursor:pointer}
+td.vazio:hover{background:#f0f7ff}
+td.bloqueado{background:#e0e0e0;cursor:default}
+
+/* PATIENTS */
+.search-bar{width:100%;padding:7px 10px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:12px;background:var(--color-background-primary);color:var(--color-text-primary);margin-bottom:10px}
+.pat-card{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:6px;background:var(--color-background-primary);display:flex;align-items:center;gap:10px;cursor:pointer}
+.pat-card:hover{border-color:var(--color-border-secondary);background:var(--color-background-secondary)}
+.av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0}
+.pat-info h4{font-size:12px;font-weight:500;color:var(--color-text-primary)}
+.pat-info p{font-size:11px;color:var(--color-text-secondary)}
+.conv-badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:500;margin-left:auto;flex-shrink:0}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:20;align-items:flex-start;justify-content:center;padding-top:60px}
+.modal-bg.open{display:flex}
+.modal{background:var(--color-background-primary);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);padding:1.25rem;width:360px;max-width:94vw;max-height:80vh;overflow-y:auto}
+.modal h3{font-size:14px;font-weight:500;margin-bottom:12px;color:var(--color-text-primary)}
+.form-group{margin-bottom:9px}
+.form-group label{display:block;font-size:11px;color:var(--color-text-secondary);margin-bottom:3px;font-weight:500}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:7px 9px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:12px;background:var(--color-background-primary);color:var(--color-text-primary)}
+.form-group textarea{height:56px;resize:vertical}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.modal-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+
+/* AGENDA MANAGER */
+.agenda-card{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.agenda-color-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+
+/* LOADING */
+.loading-screen{display:flex;align-items:center;justify-content:center;height:200px;color:var(--color-text-secondary);font-size:13px;gap:8px}
+</style>
+</head>
+<body>
+
+<div id="save-indicator" class="hidden"></div>
+
+<div class="modal-bg" id="modal-bg"><div class="modal" id="modal-content"></div></div>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-logo" style="padding:10px 10px 8px;border-bottom:1px solid rgba(255,255,255,.15);background:#000">
+  <img src="Logomarca_PsicoTEAM__1_.png" alt="PsicoTEAM" style="width:100%;max-width:160px;display:block;margin:0 auto" onerror="this.style.display='none';this.nextSibling.style.display='block'"><span style="display:none;color:#00a3e0;font-size:14px;font-weight:700;padding:4px">PsicoTEAM</span>
+</div>
+    <div class="sidebar-section">NAVEGAÇÃO</div>
+    <button class="nav-btn active" id="nav-agenda" onclick="showPage('agenda')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 1v4M11 1v4M1 7h14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Agenda
+    </button>
+    <button class="nav-btn" id="nav-pacientes" onclick="showPage('pacientes')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="12" cy="5" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M14 14c0-2-1-3.5-2-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Pacientes
+    </button>
+    <button class="nav-btn" id="nav-agendas" onclick="showPage('agendas')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/></svg>
+      Gerenciar agendas
+    </button>
+    <div class="sidebar-section" style="margin-top:8px">AGENDAS</div>
+    <div id="sidebar-agendas"></div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <h2 id="page-title">Carregando...</h2>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </div>
+    <div class="content" id="content">
+      <div class="loading-screen">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        Carregando dados do servidor...
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CORES = ['#e53935','#8e24aa','#1e88e5','#00897b','#f4511e','#c0ca33','#6d4c41','#546e7a']
+const CONVS = ['Particular','Unimed','Unimed Intercâmbio']
+const SLOTS_SEG_SEX = ['07h - 08h','08h - 09h','09h - 10h','10h - 11h','11h - 12h','12h - 13h','13h - 14h','14h - 15h','15h - 16h','16h - 17h','17h - 18h','18h - 19h']
+const SLOTS_SAB = ['07h - 08h','08h - 09h','09h - 10h','10h - 11h','11h - 12h']
+const DIAS_LABELS = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado']
+
+let agendas = []
+let currentAgendaId = 1
+let pacientes = []
+let nextPatId = 7
+let nextAgendaId = 3
+let editingCell = null
+let editingPatId = null
+
+// ─── API ──────────────────────────────────────────────────────────────────────
+let saveTimer = null
+const ind = document.getElementById('save-indicator')
+
+function showInd(msg, cls){
+  ind.textContent = msg
+  ind.className = cls
+  clearTimeout(ind._hide)
+  if(cls === 'ok') ind._hide = setTimeout(() => ind.className='hidden', 2500)
+}
+
+async function saveData(){
+  clearTimeout(saveTimer)
+  saveTimer = setTimeout(async () => {
+    showInd('💾 Salvando…', 'saving')
+    try {
+      const res = await fetch('/api/data', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({agendas, pacientes, currentAgendaId, nextPatId, nextAgendaId})
+      })
+      if(!res.ok) throw new Error('status '+res.status)
+      showInd('✅ Salvo', 'ok')
+    } catch(e){
+      showInd('❌ Erro ao salvar', 'err')
+      console.error(e)
+    }
+  }, 400)
+}
+
+async function loadData(){
+  try {
+    const res = await fetch('/api/data')
+    const json = await res.json()
+    if(json.ok && json.data){
+      const d = json.data
+      if(d.agendas && d.agendas.length)     agendas        = d.agendas
+      if(d.pacientes && d.pacientes.length)  pacientes      = d.pacientes
+      if(d.currentAgendaId)                  currentAgendaId = d.currentAgendaId
+      if(d.nextPatId)                        nextPatId       = d.nextPatId
+      if(d.nextAgendaId)                     nextAgendaId    = d.nextAgendaId
+    } else {
+      // Primeira vez: usa dados de exemplo
+      agendas   = [{id:1,nome:'Dr. Carlos Silva',cor:'#1e88e5',slots:buildDefaultAgenda1()},{id:2,nome:'Dra. Ana Pereira',cor:'#8e24aa',slots:buildDefaultAgenda2()}]
+      pacientes = [
+        {id:1,nome:'Maria Elisa',telefone:'(11) 99100-0001',convenio:'Unimed',nascimento:'1990-03-15',obs:''},
+        {id:2,nome:'Victor Ribeiro',telefone:'(11) 99100-0002',convenio:'Particular',nascimento:'1985-07-22',obs:''},
+        {id:3,nome:'Alexandre Rodrigues',telefone:'(11) 99100-0003',convenio:'Particular',nascimento:'1978-11-05',obs:''},
+        {id:4,nome:'Davi Lucas',telefone:'(11) 99100-0004',convenio:'Unimed',nascimento:'1995-01-30',obs:''},
+        {id:5,nome:'Ayla Pereira',telefone:'(11) 99100-0005',convenio:'Particular',nascimento:'2000-06-12',obs:''},
+        {id:6,nome:'Heloisa Ribeiro',telefone:'(11) 99100-0006',convenio:'Unimed Intercâmbio',nascimento:'1988-09-19',obs:''},
+      ]
+      await saveData()
+    }
+  } catch(e){
+    console.error('Erro ao carregar:', e)
+    agendas   = [{id:1,nome:'Dr. Carlos Silva',cor:'#1e88e5',slots:buildDefaultAgenda1()},{id:2,nome:'Dra. Ana Pereira',cor:'#8e24aa',slots:buildDefaultAgenda2()}]
+    pacientes = []
+    showInd('⚠️ Sem conexão com servidor', 'err')
+  }
+  showPage('agenda')
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildDefaultAgenda1(){
+  const s={}
+  SLOTS_SEG_SEX.forEach(sl=>{s[sl]=['','','','','','']})
+  SLOTS_SAB.forEach(sl=>{if(!s[sl])s[sl]=['','','','','','']})
+  s['07h - 08h']=['Maria Elisa|Unimed','','Alexandre Rodrigues|Particular','','Matteo|Particular','']
+  s['08h - 09h']=['Victor Ribeiro|Particular','Ayla Pereira|Particular','','João Pedro Araujo|Unimed','Isabela Torres|Unimed','']
+  s['09h - 10h']=['Alexandre Rodrigues|Particular','Heloisa Ribeiro|Unimed Intercâmbio','Gabriel Bassi|Particular','Levi Santana|Unimed','Arthur Lorenzzo|Unimed','']
+  s['10h - 11h']=['Davi Lucas|Unimed','Arthur José|Particular','Benicio Campos|Unimed','Miguel Martins|Unimed','Davi Lucas|Unimed','']
+  s['11h - 12h']=['','Davi Marques|Particular','','reuniao:REUNIÃO DE EQUIPE','','']
+  s['12h - 13h']=['almoco:ALMOÇO','almoco:ALMOÇO','almoco:ALMOÇO','almoco:ALMOÇO','almoco:ALMOÇO','bloqueado']
+  s['13h - 14h']=['','Luiz Henrico|Particular','Miguel Madeira|Unimed','','','bloqueado']
+  s['14h - 15h']=['','Sarah Oliveira|Particular','Alyne Franco|Unimed','','Milena Gontijo|Unimed Intercâmbio','bloqueado']
+  s['15h - 16h']=['Benjamin Silva|Particular','João Cesário|Unimed','Heitor Amaral|Particular','','Théo Hiroshi|Unimed','bloqueado']
+  s['16h - 17h']=['Luiz Henrico|Particular','Yan Lopo|Unimed','','Felipe Santarém|Particular','Arthur Castro|Particular','bloqueado']
+  s['17h - 18h']=['Arthur Rabelo|Unimed','Arthur Castro|Particular','','Heitor Amaral|Particular','Pyetro|Unimed','bloqueado']
+  s['18h - 19h']=['Paulo César|Particular','Rafael Tavares|Unimed Intercâmbio','Lorenzo Santana|Unimed','Heitor Pereira|Unimed','Lorenzo Santana|Unimed','bloqueado']
+  return s
+}
+
+function buildDefaultAgenda2(){
+  const s={}
+  SLOTS_SEG_SEX.forEach(sl=>s[sl]=['','','','','',''])
+  SLOTS_SAB.forEach(sl=>{if(!s[sl])s[sl]=['','','','','','']})
+  s['07h - 08h']=['Beatriz Lima|Particular','','','Fernanda Costa|Unimed','','']
+  s['08h - 09h']=['','Roberto Alves|Unimed','','','Clara Nunes|Particular','']
+  s['12h - 13h']=['almoco:ALMOÇO','almoco:ALMOÇO','almoco:ALMOÇO','almoco:ALMOÇO','almoco:ALMOÇO','bloqueado']
+  s['13h - 14h'][0]='bloqueado'; s['13h - 14h'][1]='bloqueado'
+  SLOTS_SEG_SEX.slice(7).forEach(sl=>{s[sl][5]='bloqueado'})
+  return s
+}
+
+function buildEmptySlots(){
+  const s={}
+  SLOTS_SEG_SEX.forEach(sl=>s[sl]=['','','','','',''])
+  SLOTS_SAB.forEach(sl=>{if(!s[sl])s[sl]=['','','','','','']})
+  SLOTS_SEG_SEX.forEach(sl=>s[sl][5]='bloqueado')
+  s['12h - 13h']=['almoco:ALMOÇO','almoco:ALMOÇO','almoco:ALMOÇO','almoco:ALMOÇO','almoco:ALMOÇO','bloqueado']
+  return s
+}
+
+function getType(v){if(!v)return'vazio';if(v==='bloqueado')return'bloqueado';if(v.startsWith('almoco:'))return'almoco';if(v.startsWith('reuniao:'))return'reuniao';return'paciente'}
+function getLabel(v){if(!v||v==='bloqueado')return'';if(v.startsWith('almoco:'))return v.slice(7);if(v.startsWith('reuniao:'))return v.slice(8);return v.split('|')[0]}
+function getConv(v){if(!v||v.includes(':'))return'';const p=v.split('|');return p[1]||''}
+function getAgenda(){return agendas.find(a=>a.id===currentAgendaId)}
+
+function renderSidebarAgendas(){
+  document.getElementById('sidebar-agendas').innerHTML=agendas.map(a=>`
+    <div class="agenda-item${a.id===currentAgendaId?' active':''}" onclick="switchAgenda(${a.id})">
+      <div class="agenda-dot" style="background:${a.cor}"></div>
+      <span style="flex:1;font-size:12px">${a.nome}</span>
+    </div>`).join('')
+}
+
+function switchAgenda(id){currentAgendaId=id;showPage('agenda')}
+
+function renderAgenda(){
+  const ag=getAgenda()
+  if(!ag)return'<p style="color:var(--color-text-secondary);font-size:13px">Nenhuma agenda selecionada.</p>'
+  const slots=[...SLOTS_SEG_SEX]
+  SLOTS_SAB.forEach(s=>{if(!slots.includes(s))slots.push(s)})
+  const allSlots=slots.filter((s,i,a)=>a.indexOf(s)===i)
+  let html='<div class="wrap"><table><thead><tr><th class="hora-col">Horários</th>'
+  DIAS_LABELS.forEach(d=>html+=`<th>${d}</th>`)
+  html+='</tr></thead><tbody>'
+  allSlots.forEach(slot=>{
+    html+=`<tr><td class="hora-cell">${slot}</td>`
+    const isSab6=!SLOTS_SEG_SEX.includes(slot)
+    for(let di=0;di<6;di++){
+      if(isSab6&&di<5){html+='<td class="bloqueado"></td>';continue}
+      const val=(ag.slots[slot]||[])[di]||''
+      const type=getType(val),label=getLabel(val),conv=getConv(val)
+      if(type==='bloqueado')html+=`<td class="bloqueado"></td>`
+      else if(type==='almoco')html+=`<td class="almoco">${label||'ALMOÇO'}</td>`
+      else if(type==='reuniao')html+=`<td class="reuniao">${label||'REUNIÃO'}</td>`
+      else if(type==='paciente')html+=`<td class="paciente" onclick="openCellModal('${slot}',${di})"><span>${label}</span><span class="conv">${conv}</span></td>`
+      else html+=`<td class="vazio" onclick="openCellModal('${slot}',${di})"></td>`
+    }
+    html+='</tr>'
+  })
+  html+='</tbody></table></div>'
+  return html
+}
+
+function renderPacientes(filter=''){
+  const filtered=pacientes.filter(p=>p.nome.toLowerCase().includes(filter.toLowerCase())||p.convenio.toLowerCase().includes(filter.toLowerCase()))
+  const colors=['#1e88e5','#8e24aa','#e53935','#00897b','#f4511e','#6d4c41']
+  let html=`<input class="search-bar" placeholder="Buscar por nome ou convênio..." oninput="filterPats(this.value)" value="${filter}">`
+  if(!filtered.length)return html+'<p style="color:var(--color-text-secondary);font-size:13px">Nenhum paciente encontrado.</p>'
+  filtered.forEach((p,i)=>{
+    const ini=p.nome.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase()
+    const col=colors[i%colors.length]
+    const convBg=p.convenio==='Particular'?'#FFF9C4':p.convenio==='Unimed'?'#E1F5EE':'#E6F1FB'
+    const convCol=p.convenio==='Particular'?'#633806':p.convenio==='Unimed'?'#085041':'#0C447C'
+    html+=`<div class="pat-card" onclick="openPatModal(${p.id})">
+      <div class="av" style="background:${col}20;color:${col}">${ini}</div>
+      <div class="pat-info"><h4>${p.nome}</h4><p>${p.telefone}${p.nascimento?' · '+p.nascimento.split('-').reverse().join('/'):''}</p></div>
+      <span class="conv-badge" style="background:${convBg};color:${convCol}">${p.convenio}</span>
+    </div>`
+  })
+  return html
+}
+
+function filterPats(v){document.getElementById('content').innerHTML=renderPacientes(v)}
+
+function renderGerenciarAgendas(){
+  return agendas.map(a=>`
+    <div class="agenda-card">
+      <div class="agenda-color-dot" style="background:${a.cor}"></div>
+      <span style="flex:1;font-size:13px;font-weight:500;color:var(--color-text-primary)">${a.nome}</span>
+      <button class="btn btn-outline" style="font-size:11px;padding:4px 9px" onclick="openAgendaEditModal(${a.id})">Editar</button>
+      <button class="btn btn-red" style="font-size:11px;padding:4px 9px;margin-left:4px" onclick="deleteAgenda(${a.id})">Remover</button>
+    </div>`).join('')
+}
+
+function showPage(page){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'))
+  document.getElementById('nav-'+page)?.classList.add('active')
+  const titles={agenda:'Agenda semanal',pacientes:'Pacientes',agendas:'Gerenciar agendas'}
+  document.getElementById('page-title').textContent=page==='agenda'?(getAgenda()?.nome||'Agenda'):titles[page]
+  const acts=document.getElementById('topbar-actions')
+  if(page==='agenda'){
+    acts.innerHTML=`<button class="btn btn-outline" onclick="openCellAddModal()">+ Agendar</button><button class="btn btn-green" onclick="printAgenda()">🖨 Imprimir</button>`
+    document.getElementById('content').innerHTML=renderAgenda()
+  } else if(page==='pacientes'){
+    acts.innerHTML=`<button class="btn btn-blue" onclick="openPatModal(null)">+ Novo paciente</button>`
+    document.getElementById('content').innerHTML=renderPacientes()
+  } else if(page==='agendas'){
+    acts.innerHTML=`<button class="btn btn-blue" onclick="openAgendaEditModal(null)">+ Nova agenda</button>`
+    document.getElementById('content').innerHTML=renderGerenciarAgendas()
+  }
+  renderSidebarAgendas()
+}
+
+function closeModal(){document.getElementById('modal-bg').classList.remove('open');editingCell=null;editingPatId=null}
+
+function openCellModal(slot,di){
+  editingCell={slot,di}
+  const ag=getAgenda()
+  const val=(ag?.slots[slot]||[])[di]||''
+  const type=getType(val),label=getLabel(val),conv=getConv(val)
+  const patOptions=pacientes.map(p=>`<option value="${p.nome}|${p.convenio}" ${label===p.nome?'selected':''}>${p.nome} (${p.convenio})</option>`).join('')
+  const convOptions=CONVS.map(c=>`<option ${conv===c?'selected':''}>${c}</option>`).join('')
+  document.getElementById('modal-content').innerHTML=`
+    <h3>Editar horário — ${slot}</h3>
+    <div class="form-group"><label>Tipo</label>
+      <select id="m-type" onchange="toggleCellType(this.value)">
+        <option value="paciente" ${type==='paciente'?'selected':''}>Paciente</option>
+        <option value="almoco" ${type==='almoco'?'selected':''}>Almoço</option>
+        <option value="reuniao" ${type==='reuniao'?'selected':''}>Reunião / Evento</option>
+        <option value="vazio">Limpar</option>
+      </select>
+    </div>
+    <div id="pat-fields">
+      <div class="form-group"><label>Selecionar paciente cadastrado</label>
+        <select id="m-pat-sel" onchange="fillFromPat(this.value)"><option value="">— selecionar —</option>${patOptions}</select>
+      </div>
+      <div class="form-group"><label>Ou digitar nome</label><input type="text" id="m-name" value="${label}" placeholder="Nome do paciente"></div>
+      <div class="form-group"><label>Convênio</label><select id="m-conv">${convOptions}</select></div>
+    </div>
+    <div id="event-fields" style="display:none">
+      <div class="form-group"><label>Descrição</label><input type="text" id="m-event" value="${type!=='paciente'?label:''}" placeholder="Ex: ALMOÇO"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      ${val?`<button class="btn btn-red" onclick="clearCell()">Limpar</button>`:''}
+      <button class="btn btn-blue" onclick="saveCell()">Salvar</button>
+    </div>`
+  toggleCellType(document.getElementById('m-type').value)
+  document.getElementById('modal-bg').classList.add('open')
+}
+
+function openCellAddModal(){
+  const slotOpts=SLOTS_SEG_SEX.concat(SLOTS_SAB.filter(s=>!SLOTS_SEG_SEX.includes(s))).map(s=>`<option>${s}</option>`).join('')
+  const diaOpts=DIAS_LABELS.map((d,i)=>`<option value="${i}">${d}</option>`).join('')
+  const convOptions=CONVS.map(c=>`<option>${c}</option>`).join('')
+  const patOptions=pacientes.map(p=>`<option value="${p.nome}|${p.convenio}">${p.nome} (${p.convenio})</option>`).join('')
+  document.getElementById('modal-content').innerHTML=`
+    <h3>Novo agendamento</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Dia</label><select id="m-day">${diaOpts}</select></div>
+      <div class="form-group"><label>Horário</label><select id="m-slot">${slotOpts}</select></div>
+    </div>
+    <div class="form-group"><label>Selecionar paciente</label>
+      <select id="m-pat-sel" onchange="fillFromPat2(this.value)"><option value="">— selecionar —</option>${patOptions}</select>
+    </div>
+    <div class="form-group"><label>Ou digitar nome</label><input type="text" id="m-name" placeholder="Nome"></div>
+    <div class="form-group"><label>Convênio</label><select id="m-conv">${convOptions}</select></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-blue" onclick="saveNewCell()">Salvar</button>
+    </div>`
+  document.getElementById('modal-bg').classList.add('open')
+}
+
+function fillFromPat(v){if(!v)return;const p=v.split('|');document.getElementById('m-name').value=p[0]||'';const s=document.getElementById('m-conv');if(s&&p[1]){for(let o of s.options)if(o.value===p[1]){o.selected=true;break}}}
+function fillFromPat2(v){fillFromPat(v)}
+function toggleCellType(v){
+  const pf=document.getElementById('pat-fields'),ef=document.getElementById('event-fields')
+  if(v==='paciente'){pf.style.display='';ef.style.display='none'}
+  else{pf.style.display='none';ef.style.display=''}
+}
+function saveCell(){
+  const ag=getAgenda();if(!ag||!editingCell)return
+  const{slot,di}=editingCell
+  const type=document.getElementById('m-type').value
+  if(!ag.slots[slot])ag.slots[slot]=['','','','','','']
+  if(type==='vazio')ag.slots[slot][di]=''
+  else if(type==='almoco')ag.slots[slot][di]='almoco:'+(document.getElementById('m-event').value||'ALMOÇO')
+  else if(type==='reuniao')ag.slots[slot][di]='reuniao:'+(document.getElementById('m-event').value||'REUNIÃO')
+  else{const n=document.getElementById('m-name').value.trim();const c=document.getElementById('m-conv').value;ag.slots[slot][di]=n+(c?'|'+c:'')}
+  saveData();closeModal();showPage('agenda')
+}
+function clearCell(){
+  const ag=getAgenda();if(!ag||!editingCell)return
+  ag.slots[editingCell.slot][editingCell.di]=''
+  saveData();closeModal();showPage('agenda')
+}
+function saveNewCell(){
+  const ag=getAgenda();if(!ag)return
+  const di=parseInt(document.getElementById('m-day').value)
+  const slot=document.getElementById('m-slot').value
+  const n=document.getElementById('m-name').value.trim()
+  const c=document.getElementById('m-conv').value
+  if(!n){alert('Digite o nome do paciente');return}
+  if(!ag.slots[slot])ag.slots[slot]=['','','','','','']
+  ag.slots[slot][di]=n+(c?'|'+c:'')
+  saveData();closeModal();showPage('agenda')
+}
+
+function openPatModal(id){
+  editingPatId=id
+  const p=id?pacientes.find(x=>x.id===id):null
+  const convOpts=CONVS.map(c=>`<option ${p?.convenio===c?'selected':''}>${c}</option>`).join('')
+  document.getElementById('modal-content').innerHTML=`
+    <h3>${p?'Editar paciente':'Novo paciente'}</h3>
+    <div class="form-group"><label>Nome completo</label><input type="text" id="p-nome" value="${p?.nome||''}" placeholder="Nome do paciente"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Telefone</label><input type="text" id="p-tel" value="${p?.telefone||''}" placeholder="(11) 99999-9999"></div>
+      <div class="form-group"><label>Nascimento</label><input type="date" id="p-nasc" value="${p?.nascimento||''}"></div>
+    </div>
+    <div class="form-group"><label>Convênio / Plano</label><select id="p-conv">${convOpts}</select></div>
+    <div class="form-group"><label>Observações</label><textarea id="p-obs" placeholder="Alergias, observações clínicas...">${p?.obs||''}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      ${p?`<button class="btn btn-red" onclick="deletePat(${p.id})">Remover</button>`:''}
+      <button class="btn btn-blue" onclick="savePat()">Salvar</button>
+    </div>`
+  document.getElementById('modal-bg').classList.add('open')
+}
+function savePat(){
+  const nome=document.getElementById('p-nome').value.trim()
+  if(!nome){alert('Digite o nome');return}
+  const obj={id:editingPatId||nextPatId++,nome,telefone:document.getElementById('p-tel').value,nascimento:document.getElementById('p-nasc').value,convenio:document.getElementById('p-conv').value,obs:document.getElementById('p-obs').value}
+  if(editingPatId){const i=pacientes.findIndex(p=>p.id===editingPatId);pacientes[i]=obj}else pacientes.push(obj)
+  saveData();closeModal();showPage('pacientes')
+}
+function deletePat(id){if(confirm('Remover paciente?')){pacientes=pacientes.filter(p=>p.id!==id);saveData();closeModal();showPage('pacientes')}}
+
+function openAgendaEditModal(id){
+  const ag=id?agendas.find(a=>a.id===id):null
+  document.getElementById('modal-content').innerHTML=`
+    <h3>${ag?'Editar agenda':'Nova agenda'}</h3>
+    <div class="form-group"><label>Nome do profissional</label><input type="text" id="ag-nome" value="${ag?.nome||''}" placeholder="Dr. Nome Sobrenome"></div>
+    <div class="form-group"><label>Cor de identificação</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">${CORES.map(c=>`<div onclick="selectCor('${c}')" id="cor-${c.slice(1)}" style="width:24px;height:24px;border-radius:50%;background:${c};cursor:pointer;border:${ag?.cor===c?'3px solid #fff;outline:2px solid '+c:'2px solid transparent'}"></div>`).join('')}</div>
+      <input type="hidden" id="ag-cor" value="${ag?.cor||CORES[0]}">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      ${ag?`<button class="btn btn-red" onclick="deleteAgenda(${ag.id})">Remover</button>`:''}
+      <button class="btn btn-blue" onclick="saveAgenda(${id||'null'})">Salvar</button>
+    </div>`
+  document.getElementById('modal-bg').classList.add('open')
+}
+function selectCor(c){
+  document.getElementById('ag-cor').value=c
+  CORES.forEach(x=>{const el=document.getElementById('cor-'+x.slice(1));if(el)el.style.border=x===c?'3px solid #fff':'2px solid transparent';if(el&&x===c)el.style.outline='2px solid '+c;else if(el)el.style.outline='none'})
+}
+function saveAgenda(id){
+  const nome=document.getElementById('ag-nome').value.trim()
+  const cor=document.getElementById('ag-cor').value
+  if(!nome){alert('Digite o nome');return}
+  if(id){const i=agendas.findIndex(a=>a.id===id);agendas[i].nome=nome;agendas[i].cor=cor}
+  else{const s=buildEmptySlots();agendas.push({id:nextAgendaId++,nome,cor,slots:s})}
+  saveData();closeModal();showPage('agendas')
+}
+function deleteAgenda(id){
+  if(agendas.length<=1){alert('Mantenha ao menos uma agenda.');return}
+  if(confirm('Remover esta agenda?')){agendas=agendas.filter(a=>a.id!==id);if(currentAgendaId===id)currentAgendaId=agendas[0].id;saveData();closeModal();showPage('agendas')}
+}
+
+function printAgenda(){
+  const ag=getAgenda();if(!ag)return
+  const t=document.querySelector('#content table')
+  if(!t)return
+  const w=window.open('','_blank')
+  w.document.write(`<html><head><title>${ag.nome}</title><style>body{font-family:sans-serif}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:5px 3px;text-align:center;font-size:10px}.paciente{background:#4caf50;color:#0a2e0c}.almoco{background:#00bcd4}.reuniao{background:#e040fb}.hora-cell{background:#d4e6f7}th{background:#1a6fb5;color:#fff}.bloqueado{background:#e0e0e0}</style></head><body><h2 style="font-size:13px;margin-bottom:8px">${ag.nome}</h2>${t.outerHTML}</body></html>`)
+  w.document.close();w.print()
+}
+
+// Inicia carregando dados do servidor
+loadData()
+</script>
+</body>
+</html>
