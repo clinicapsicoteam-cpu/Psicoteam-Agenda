@@ -1,0 +1,2413 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PsicoTEAM v6</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,sans-serif}
+:root{
+  --bg:#f0f4f8;--sidebar:#1a1a2e;--primary:#00a3e0;--green:#2e7d32;
+  --red:#E24B4A;--border:#e5e7eb;--text:#1a1a2e;--muted:#6b7280;
+}
+html,body{min-height:100%;background:var(--bg)}
+body{display:flex;align-items:flex-start;justify-content:center}
+
+/* SAVE INDICATOR */
+#ind{position:fixed;top:10px;right:14px;font-size:11px;padding:4px 10px;border-radius:20px;font-weight:500;z-index:500;transition:opacity .4s;opacity:0}
+#ind.show{opacity:1}
+#ind.ok{background:#d1fae5;color:#065f46}
+#ind.saving{background:#fef9c3;color:#713f12}
+#ind.err{background:#fee2e2;color:#991b1b}
+
+/* ALERTAS */
+#alerts{position:fixed;top:0;left:0;right:0;z-index:400;pointer-events:none}
+.alert-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12px;pointer-events:all;animation:slideDown .3s ease}
+.alert-item.urgente{background:#b71c1c;color:#fff}
+.alert-item.aviso{background:#e65100;color:#fff}
+.alert-item.ok-alert{background:#1b5e20;color:#fff}
+.alert-close{margin-left:auto;background:none;border:none;color:inherit;cursor:pointer;font-size:16px;line-height:1;padding:0 4px}
+@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+
+/* APP LAYOUT */
+.app{display:flex;width:100%;min-height:100vh;background:#fff}
+.sidebar{width:210px;flex-shrink:0;background:var(--sidebar);display:flex;flex-direction:column;min-height:100vh;overflow-y:auto;position:sticky;top:0;max-height:100vh}
+.logo-area{background:#000;padding:8px;border-bottom:1px solid rgba(255,255,255,.1)}
+.logo-area img{width:100%;display:block}
+.logo-area .logo-txt{color:#00a3e0;font-weight:700;font-size:16px;padding:10px 12px}
+.sec-label{padding:8px 10px 4px;font-size:10px;color:rgba(0,163,224,.8);font-weight:600;letter-spacing:.07em;margin-top:4px}
+.nav-btn{background:none;border:none;text-align:left;padding:8px 12px;cursor:pointer;font-size:12px;color:rgba(255,255,255,.8);display:flex;align-items:center;gap:7px;width:100%;transition:background .15s}
+.nav-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+.nav-btn.active{background:rgba(0,163,224,.25);color:#fff;font-weight:500}
+.nav-btn .badge{background:#c62828;color:#fff;border-radius:10px;font-size:9px;padding:1px 5px;margin-left:auto;font-weight:700}
+.ag-item{display:flex;align-items:center;gap:7px;padding:5px 12px;cursor:pointer;font-size:11px;color:rgba(255,255,255,.75);transition:background .15s}
+.ag-item:hover{background:rgba(255,255,255,.08)}
+.ag-item.active{background:rgba(255,255,255,.15);color:#fff}
+.ag-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.grp-hdr{display:flex;align-items:center;gap:6px;padding:6px 10px 4px;cursor:pointer;font-size:10px;color:rgba(0,163,224,.85);font-weight:700;letter-spacing:.06em;margin-top:6px;border-top:1px solid rgba(255,255,255,.07)}
+.grp-hdr:hover{background:rgba(255,255,255,.05)}
+.grp-items{overflow:hidden;transition:max-height .25s ease}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.topbar{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;background:#fff;position:sticky;top:0;z-index:10}
+.topbar h2{font-size:14px;font-weight:600;color:var(--text)}
+.topbar-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.content{flex:1;padding:14px;overflow:auto}
+
+/* BUTTONS */
+.btn{padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;border:none;white-space:nowrap;transition:all .15s}
+.btn-blue{background:#00a3e0;color:#fff}.btn-blue:hover{background:#0090c5}
+.btn-green{background:#2e7d32;color:#fff}.btn-green:hover{background:#1b5e20}
+.btn-outline{background:none;border:1px solid #d1d5db;color:var(--muted)}.btn-outline:hover{background:#f5f7fa}
+.btn-red{background:#E24B4A;color:#fff}.btn-red:hover{background:#c0392b}
+.btn-sm{padding:4px 9px;font-size:11px}
+
+/* LEGENDA */
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;font-size:11px;align-items:center}
+.leg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
+/* TABLE */
+.wrap{}
+table{border-collapse:collapse;width:100%;min-width:700px;font-size:11px}
+th,td{border:1px solid #ccc;padding:0;text-align:center;vertical-align:middle;height:38px}
+th{background:#006fa8;color:#fff;font-weight:500;font-size:11px;padding:5px 3px;position:sticky;top:0;z-index:5}
+th.hora-col{width:76px}
+td.hora-cell{background:#e0f4fb;color:#005f80;font-weight:500;font-size:11px;width:76px}
+td.almoco{background:#00bcd4;color:#003a42;font-weight:500;font-size:11px}
+td.reuniao{background:#7b1fa2;color:#fff;font-weight:500;font-size:11px}
+td.bloqueado{background:#eee}
+td.vazio{background:#fff;cursor:pointer}
+td.vazio:hover{background:#f0f7ff}
+td.pac-unimed{background:#1b5e20;color:#fff;cursor:pointer;font-size:11px;padding:2px 3px}
+td.pac-intercambio{background:#a5d6a7;color:#1b2e1c;cursor:pointer;font-size:11px;padding:2px 3px}
+td.pac-particular{background:#1565c0;color:#fff;cursor:pointer;font-size:11px;padding:2px 3px}
+td.pac-falta{background:#c62828;color:#fff;cursor:pointer;font-size:11px;padding:2px 3px}
+td.pac-unimed:hover,td.pac-intercambio:hover,td.pac-particular:hover,td.pac-falta:hover{filter:brightness(.88)}
+td.paciente-cell span.conv{display:block;font-size:9px;opacity:.85}
+
+/* PAT CARDS */
+.search-bar{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:#fff;margin-bottom:10px}
+.pat-card{border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:6px;background:#fff;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .15s}
+.pat-card:hover{border-color:#9ca3af;background:#f9fafb}
+.av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.pat-info h4{font-size:12px;font-weight:600;color:var(--text)}
+.pat-info p{font-size:11px;color:var(--muted)}
+.conv-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:auto;flex-shrink:0}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-start;justify-content:center;padding:40px 12px;overflow-y:auto}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:10px;padding:20px;width:440px;max-width:100%;max-height:90vh;overflow-y:auto;margin-bottom:20px;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.modal h3{font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text)}
+.form-group{margin-bottom:9px}
+.form-group label{display:block;font-size:11px;color:var(--muted);margin-bottom:3px;font-weight:500}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:7px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;background:#fff;color:var(--text);font-family:inherit}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:#00a3e0}
+.form-group textarea{height:60px;resize:vertical}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.modal-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--border)}
+
+/* TABS (modal paciente) */
+.tab-bar{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:12px}
+.tab-btn{padding:6px 14px;font-size:12px;cursor:pointer;border:none;background:none;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;font-weight:500;transition:all .15s}
+.tab-btn.active{color:#00a3e0;border-bottom-color:#00a3e0;font-weight:600}
+.tab-pane{display:none}.tab-pane.active{display:block}
+
+/* GUIA SUB-TABS */
+.gtab-bar{display:flex;flex-wrap:wrap;gap:2px;border-bottom:2px solid var(--border);margin-bottom:12px}
+.gtab-bar button{padding:4px 9px;font-size:11px;cursor:pointer;border:none;background:none;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;font-weight:400;transition:all .15s;white-space:nowrap}
+.gtab-bar button.gactive{color:#00a3e0;border-bottom-color:#00a3e0;font-weight:600}
+.gtab-pane{display:none}.gtab-pane.active{display:block}
+
+/* LAUDO UPLOAD */
+.laudo-drop{border:2px dashed #b0bec5;border-radius:8px;padding:16px;text-align:center;cursor:pointer;background:#fafafa;transition:all .2s;margin-top:6px}
+.laudo-drop:hover,.laudo-drop.drag{border-color:#00695c;background:#e8f5e9}
+
+/* AGENDA CARD */
+.agenda-card{border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;background:#fff}
+.ag-color-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+
+/* SLOT EDITOR */
+.slot-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.slot-label{width:90px;flex-shrink:0;color:var(--muted);font-size:11px}
+.slot-toggle{width:22px;height:22px;border-radius:50%;border:none;cursor:pointer;font-size:13px;flex-shrink:0;line-height:1}
+.slot-toggle.on{background:#d1fae5;color:#065f46}
+.slot-toggle.off{background:#fee2e2;color:#991b1b}
+
+/* COLOR SWATCHES */
+.swatch{width:24px;height:24px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .1s;flex-shrink:0}
+.swatch:hover{transform:scale(1.15)}
+.swatch.sel{border-color:#fff;outline:2px solid #333}
+
+/* CONFIG */
+.cfg-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.cstat{background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.cstat .num{font-size:22px;font-weight:700;color:#00695c}
+.cstat .lbl{font-size:11px;color:var(--muted);margin-top:2px}
+.cfg-tab-bar{display:flex;border-bottom:2px solid var(--border);margin-bottom:14px}
+.cfg-tab{padding:7px 16px;font-size:12px;cursor:pointer;border:none;background:none;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;font-weight:500;transition:all .15s}
+.cfg-tab.active{color:#00a3e0;border-bottom-color:#00a3e0;font-weight:600}
+.cfg-pane{display:none}.cfg-pane.active{display:block}
+.bulk-bar{display:none;align-items:center;gap:10px;background:#1a237e;color:#fff;padding:9px 14px;border-radius:6px;margin-bottom:10px;font-size:12px}
+.bulk-bar.show{display:flex}
+.bulk-bar>span{flex:1;font-weight:600}
+.cfg-tbl{width:100%;border-collapse:collapse;font-size:12px;background:#fff}
+.cfg-tbl th{background:#004d40;color:#fff;padding:9px 12px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.cfg-tbl th:first-child{width:36px;text-align:center}
+.cfg-tbl td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.cfg-tbl tr:hover td{background:#f0fdf9}
+.cfg-tbl tr.sel td{background:#e0f2f1}
+.cfg-tbl tr:last-child td{border-bottom:none}
+.cfg-tbl td:first-child{text-align:center}
+.exp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.exp-card{border:1px solid var(--border);border-radius:8px;padding:16px;cursor:pointer;text-align:center;transition:all .15s}
+.exp-card:hover{border-color:#00695c;background:#e8f5e9}
+.exp-icon{font-size:28px;margin-bottom:6px}
+.exp-card h4{font-size:12px;font-weight:600;margin-bottom:3px}
+.exp-card p{font-size:11px;color:var(--muted)}
+
+/* EXECUÇÃO DE GUIAS */
+.exec-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.exec-date{padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit}
+.exec-dia-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px}
+.exec-dia-btn{padding:6px 14px;border:1px solid var(--border);border-radius:20px;background:#fff;font-size:12px;cursor:pointer;font-weight:500;transition:all .15s;color:var(--muted)}
+.exec-dia-btn:hover{border-color:#00a3e0;color:#00a3e0}
+.exec-dia-btn.active{background:#00a3e0;color:#fff;border-color:#00a3e0;font-weight:600}
+.exec-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:0;margin-bottom:8px;overflow:hidden;transition:all .15s}
+.exec-card.exec-ok{border-color:#a5d6a7;background:#f1f8e9}
+.exec-card.exec-falta{border-color:#ef9a9a;background:#fff8f8}
+.exec-header{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer}
+.exec-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.exec-pacname{font-size:13px;font-weight:600;color:var(--text)}
+.exec-meta{font-size:11px;color:var(--muted)}
+.exec-status-pill{margin-left:auto;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.exec-body{border-top:1px solid var(--border);padding:10px 14px;display:none}
+.exec-body.open{display:block}
+.exec-esp-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f0f0f0}
+.exec-esp-row:last-child{border-bottom:none}
+.exec-esp-label{flex:1;font-size:12px;font-weight:500;color:var(--text)}
+.exec-esp-prof{font-size:11px;color:var(--muted);min-width:120px}
+.exec-esp-slot{font-size:11px;color:var(--muted);min-width:80px}
+.exec-chk{width:20px;height:20px;cursor:pointer;accent-color:#2e7d32;flex-shrink:0}
+.exec-obs-inp{flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:11px;font-family:inherit;max-width:180px}
+.exec-summary{background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.exec-sum-card{text-align:center}
+.exec-sum-num{font-size:22px;font-weight:700}
+.exec-sum-lbl{font-size:11px;color:var(--muted)}
+.exec-rel-section{background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px}
+.exec-rel-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.exec-rel-table{width:100%;border-collapse:collapse;font-size:11px}
+.exec-rel-table th{background:#1a1a2e;color:#fff;padding:7px 10px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.exec-rel-table td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.exec-rel-table tr:last-child td{border-bottom:none}
+.exec-rel-table tr:hover td{background:#f9fafb}
+.pill-ok{background:#d1fae5;color:#065f46;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.pill-falta{background:#fee2e2;color:#991b1b;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.pill-pend{background:#fef9c3;color:#713f12;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+
+/* SUPERVISÃO — layout especial */
+.sup-section{margin-bottom:18px}
+.sup-section-title{background:linear-gradient(90deg,#1a237e,#283593);color:#fff;padding:8px 14px;border-radius:8px 8px 0 0;font-size:12px;font-weight:700;letter-spacing:.04em;display:flex;align-items:center;gap:8px}
+.sup-grid{background:#fff;border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;overflow:hidden}
+.sup-table{width:100%;border-collapse:collapse;font-size:12px}
+.sup-table th{background:#3949ab;color:#fff;padding:8px 12px;font-size:11px;font-weight:600;text-align:center;border:1px solid rgba(255,255,255,.15)}
+.sup-table td{border:1px solid #e8eaf6;padding:0;height:44px;vertical-align:middle;text-align:center;cursor:pointer;background:#fafafa;transition:background .15s}
+.sup-table td:hover{background:#e8eaf6}
+.sup-table td.sup-ocupado{background:#c5cae9;color:#1a237e;font-size:11px;font-weight:600;cursor:pointer}
+.sup-table td.sup-ocupado:hover{background:#9fa8da}
+.sup-table .dia-col{width:calc(100%/6)}
+
+/* MODO VISUALIZAÇÃO */
+body.view-mode .nav-btn:not(#nav-agenda):not(#nav-pacientes) { display:none }
+body.view-mode .topbar-actions .btn-blue,
+body.view-mode .topbar-actions .btn-green { display:none }
+body.view-mode #sidebar-agendas .ag-item { cursor:default }
+body.view-mode .view-badge {
+  display:inline-flex!important;
+  align-items:center;gap:5px;
+  background:#fff3cd;color:#856404;
+  font-size:11px;font-weight:600;
+  padding:4px 10px;border-radius:20px;
+  border:1px solid #ffc107;
+}
+.view-badge { display:none }
+body.view-mode td.vazio { cursor:default; pointer-events:none }
+body.view-mode td.pac-unimed,
+body.view-mode td.pac-particular,
+body.view-mode td.pac-intercambio,
+body.view-mode td.pac-falta { cursor:default; pointer-events:none }
+body.view-mode .sup-table td { cursor:default; pointer-events:none }
+
+/* LOGIN OVERLAY */
+.login-overlay {
+  position:fixed;inset:0;background:rgba(26,26,46,.92);
+  z-index:9999;display:flex;align-items:center;justify-content:center
+}
+.login-box {
+  background:#fff;border-radius:14px;padding:32px 28px;width:340px;
+  box-shadow:0 16px 48px rgba(0,0,0,.3);text-align:center
+}
+.login-box img { width:120px;margin-bottom:16px }
+.login-box h2 { font-size:16px;font-weight:700;margin-bottom:4px;color:#1a1a2e }
+.login-box p  { font-size:12px;color:#6b7280;margin-bottom:20px }
+.login-inp {
+  width:100%;padding:10px 14px;border:1.5px solid #d1d5db;
+  border-radius:8px;font-size:14px;font-family:inherit;
+  margin-bottom:10px;text-align:center;letter-spacing:3px
+}
+.login-inp:focus { outline:none;border-color:#00a3e0 }
+.login-err { color:#dc2626;font-size:12px;margin-bottom:8px;display:none }
+.login-links { display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap }
+.login-link  { font-size:11px;color:#6b7280;text-decoration:none;padding:4px 8px;border-radius:6px;border:1px solid #e5e7eb }
+.login-link:hover { background:#f9fafb }
+
+/* PRINT — AGENDA DO PACIENTE */
+@media print {
+  .print-pac-page { display:block!important }
+  body > *:not(.print-pac-page) { display:none!important }
+}
+.print-pac-page {
+  display:none;
+  font-family:Arial,sans-serif;
+  padding:24px;
+  background:#fff;
+}
+.print-pac-header {
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:3px solid #1b5e20;padding-bottom:12px;margin-bottom:16px
+}
+.print-pac-header img { height:60px }
+.print-pac-nome { font-size:18px;font-weight:700;color:#1a1a2e;text-align:right }
+.print-pac-subtitulo { font-size:12px;color:#666;text-align:right;margin-top:2px }
+.print-pac-table { width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px }
+.print-pac-table th { background:#1b5e20;color:#fff;padding:8px 12px;text-align:center;border:1px solid #999 }
+.print-pac-table th.hora { background:#005f80;width:90px }
+.print-pac-table td { border:1px solid #ccc;padding:8px 10px;text-align:center;height:36px }
+.print-pac-table td.hora-td { background:#e0f4fb;color:#005f80;font-weight:600;text-align:left }
+.print-pac-table td.sessao { font-weight:600;font-size:12px }
+.print-pac-table td.sessao.verde  { background:#1b5e20;color:#fff }
+.print-pac-table td.sessao.azul   { background:#1565c0;color:#fff }
+.print-pac-table td.sessao.rosa   { background:#e91e8c;color:#fff }
+.print-pac-table td.sessao.vazio  { background:#fff }
+.print-pac-footer { font-size:10px;color:#999;text-align:center;margin-top:8px }
+
+/* SUP SLOT CARDS */
+.sup-slot-empty{border:2px dashed #c5cae9;border-radius:8px;padding:14px;text-align:center;cursor:pointer;color:#9fa8da;font-size:12px;transition:all .15s}
+.sup-slot-empty:hover{border-color:#3f51b5;color:#3f51b5}
+.sup-slot-filled{border-radius:8px;overflow:hidden;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div id="ind"></div>
+<div id="alerts"></div>
+<div class="modal-bg" id="modal-bg"><div class="modal" id="modal-content"></div></div>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="logo-area" id="logo-area">
+      <img src="/Logomarca_PsicoTEAM_1_.png" alt="PsicoTEAM"
+        onerror="this.parentElement.innerHTML='<div class=logo-txt>PsicoTEAM</div>'">
+    </div>
+    <div class="sec-label">NAVEGAÇÃO</div>
+    <button class="nav-btn active" id="nav-agenda" onclick="showPage('agenda')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 1v4M11 1v4M1 7h14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Agenda
+    </button>
+    <button class="nav-btn" id="nav-pacientes" onclick="showPage('pacientes')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Pacientes
+    </button>
+    <button class="nav-btn" id="nav-agendas" onclick="showPage('agendas')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/></svg>
+      Gerenciar agendas
+    </button>
+    <button class="nav-btn" id="nav-execucao" onclick="showPage('execucao')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Execução de Guias
+    </button>
+    <button class="nav-btn" id="nav-config" onclick="showPage('config')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Configurações
+    </button>
+    <div class="sec-label" style="margin-top:8px">AGENDAS</div>
+    <div id="sidebar-agendas"></div>
+    <div style="padding:10px 12px;border-top:1px solid rgba(255,255,255,.08);margin-top:auto">
+      <span class="view-badge">👁 Modo visualização</span>
+      <div id="admin-btn-area"></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <h2 id="page-title">Carregando...</h2>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONSTANTES
+// ═══════════════════════════════════════════════════════════
+const CONVS = ['Particular','Unimed','Unimed Intercâmbio']
+const ESPS  = ['Psicologia','Fonoaudiologia','Psicopedagogia','Psicomotricidade','Terapia Ocupacional','Neuropsicologia','Outro']
+const SLOTS_SEG_SEX = ['07h - 08h','08h - 09h','09h - 10h','10h - 11h','11h - 12h','12h - 13h','13h - 14h','14h - 15h','15h - 16h','16h - 17h','17h - 18h','18h - 19h']
+const SLOTS_SAB     = ['07h - 08h','08h - 09h','09h - 10h','10h - 11h','11h - 12h']
+const DIAS = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado']
+const CORES = ['#1b5e20','#2e7d32','#388e3c','#1565c0','#0277bd','#6a1b9a','#880e4f','#b71c1c','#e65100','#f57f17','#004d40','#263238','#37474f','#4e342e','#00695c','#1a237e','#4527a0','#ad1457','#c62828','#283593','#00838f','#558b2f','#ef6c00','#d84315']
+
+// Seed embutido (dados originais)
+const SEED = {"agendas":[{"id":1,"nome":"Fonoaudiologa - Francisca Joyce","cor":"#e53935","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Fonoaudiologia"},{"id":2,"nome":"Estágiária de Fonoaudiologia - Kalhyta","cor":"#8e24aa","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Fonoaudiologia"},{"id":3,"nome":"Estágiária de Fonoaudiologia - Luiza","cor":"#1e88e5","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Fonoaudiologia"},{"id":4,"nome":"Fonoaudiologa - Rita","cor":"#00897b","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["","","","","","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Fonoaudiologia"},{"id":5,"nome":"Estágiária de Fonoaudiologia - Shelda","cor":"#f4511e","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Fonoaudiologia"},{"id":6,"nome":"Fonoaudiologa - Tahianny","cor":"#c0ca33","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Fonoaudiologia"},{"id":7,"nome":"Psicomotricista - Henrique","cor":"#6d4c41","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicomotricidade"},{"id":8,"nome":"Psicomotricista - Ismael","cor":"#546e7a","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["","","","","","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicomotricidade"},{"id":9,"nome":"Psicomotricista - Jean","cor":"#00acc1","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["","","","","","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicomotricidade"},{"id":10,"nome":"Psicomotricista José Carlos","cor":"#43a047","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicomotricidade"},{"id":11,"nome":"Estágiario de Psicomotricidade - Juliana","cor":"#fb8c00","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["","","","","","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicomotricidade"},{"id":12,"nome":"Psicomotricista - Lucas","cor":"#8d6e63","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["","","","","","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicomotricidade"},{"id":13,"nome":"Psicomotricista - Michelle","cor":"#d81b60","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["","","","","","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicomotricidade"},{"id":14,"nome":"Estágiario de Psicomotricidade - Rafael","cor":"#3949ab","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicomotricidade"},{"id":15,"nome":"Psicomotricista - Vinicius","cor":"#00838f","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["","","","","","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicomotricidade"},{"id":16,"nome":"Psicopedagoga - Alynne Vieira Santos","cor":"#558b2f","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["","","","","","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicopedagogia"},{"id":17,"nome":"Psicopedagoga - Giovana Moura do Nascimento","cor":"#ef6c00","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicopedagogia"},{"id":18,"nome":"Psicopedagoga - Hulda","cor":"#4527a0","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicopedagogia"},{"id":19,"nome":"Psicopedagoga - Jéssica Santiago Machado","cor":"#00695c","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicopedagogia"},{"id":20,"nome":"Psicopedagoga - Kerolaine","cor":"#283593","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicopedagogia"},{"id":21,"nome":"Psicopedagoga - Mayara","cor":"#6a1b9a","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["","","","","","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicopedagogia"},{"id":22,"nome":"Psicopedagoga - Monique","cor":"#1565c0","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicopedagogia"},{"id":23,"nome":"Psicopedagoga - Rayssa","cor":"#2e7d32","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicopedagogia"},{"id":24,"nome":"Psicopedagoga - Vanuza","cor":"#ad1457","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["","","","","","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Psicopedagogia"},{"id":25,"nome":"Terapeuta Ocupacional - Diana","cor":"#0277bd","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["","","","","","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Terapia Ocupacional"},{"id":26,"nome":"Terapeuta Ocupacional - Eduarda Mariah","cor":"#4e342e","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Terapia Ocupacional"},{"id":27,"nome":"Terapeuta Ocupacional - Luanna","cor":"#37474f","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["","","","","","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Terapia Ocupacional"},{"id":28,"nome":"Terapeuta Ocupacional - Nubia","cor":"#ff6f00","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["","","","","","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Terapia Ocupacional"},{"id":29,"nome":"T.O - Scarleth","cor":"#c62828","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["","","","","","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Terapia Ocupacional"},{"id":30,"nome":"Terapeuta Ocupacional - Mariana","cor":"#1b5e20","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Terapia Ocupacional"},{"id":31,"nome":"Pacientes - Supervisora Amanda Franco","cor":"#e53935","slots":{"Matutino":["","","","","",""],"Vespertino":["","","","","",""],"Sábado":["","","","","",""]},"especialidade":"Supervisão","tipo":"supervisao","activeSlots":["Matutino","Vespertino","Sábado"]},{"id":32,"nome":"Pacientes - Supervisora Anna Carolina","cor":"#8e24aa","slots":{"Matutino":["","","","","",""],"Vespertino":["","","","","",""],"Sábado":["","","","","",""]},"especialidade":"Supervisão","tipo":"supervisao","activeSlots":["Matutino","Vespertino","Sábado"]},{"id":33,"nome":"Pacientes - Supervisora Débora","cor":"#1e88e5","slots":{"Matutino":["","","","","",""],"Vespertino":["","","","","",""],"Sábado":["","","","","",""]},"especialidade":"Supervisão","tipo":"supervisao","activeSlots":["Matutino","Vespertino","Sábado"]},{"id":34,"nome":"Pacientes - Supervisora Lauany","cor":"#00897b","slots":{"Matutino":["","","","","",""],"Vespertino":["","","","","",""],"Sábado":["","","","","",""]},"especialidade":"Supervisão","tipo":"supervisao","activeSlots":["Matutino","Vespertino","Sábado"]},{"id":35,"nome":"Pacientes - Supervisora Nathalya","cor":"#f4511e","slots":{"Matutino":["","","","","",""],"Vespertino":["","","","","",""],"Sábado":["","","","","",""]},"especialidade":"Supervisão","tipo":"supervisao","activeSlots":["Matutino","Vespertino","Sábado"]},{"id":36,"nome":"Pacientes - Supervisora Weulla","cor":"#c0ca33","slots":{"Matutino":["","","","","",""],"Vespertino":["","","","","",""],"Sábado":["","","","","",""]},"especialidade":"Supervisão","tipo":"supervisao","activeSlots":["Matutino","Vespertino","Sábado"]},{"id":37,"nome":"AT - Aline","cor":"#6d4c41","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":38,"nome":"AT - Amanda Diniz","cor":"#546e7a","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":39,"nome":"AT - Ana Carolina Rodrigues Ferreira","cor":"#00acc1","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":40,"nome":"AT - Ana Clara","cor":"#43a047","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":41,"nome":"AT - Ana Júlia Merlem","cor":"#fb8c00","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":42,"nome":"AT - Bruna Vitória Pereira Pinto","cor":"#8d6e63","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":43,"nome":"AT - Calina Cristina Oliviera","cor":"#d81b60","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":44,"nome":"AT - Eduarda Mariah","cor":"#3949ab","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":45,"nome":"AT - Eduarda Vitória Taveira Garcia","cor":"#00838f","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":46,"nome":"A.T João Pedro de Assis Campos","cor":"#558b2f","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":47,"nome":"AT - Júlia de Freitas Alencar","cor":"#ef6c00","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":48,"nome":"AT - Lucas Macedo Santos","cor":"#4527a0","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":49,"nome":"AT - Maria Karolyna","cor":"#00695c","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":50,"nome":"AT - Mirielly","cor":"#283593","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":51,"nome":"AT - Nayane Camille dos Santos Silva","cor":"#6a1b9a","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":52,"nome":"AT - Rafaella Alves de Paula","cor":"#1565c0","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":53,"nome":"AT - Rebeca","cor":"#2e7d32","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":54,"nome":"AT - Renato","cor":"#ad1457","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"},{"id":55,"nome":"AT - Rosalice Leão","cor":"#0277bd","slots":{"07h - 08h":["","","","","","bloqueado"],"08h - 09h":["","","","","","bloqueado"],"09h - 10h":["","","","","","bloqueado"],"10h - 11h":["","","","","","bloqueado"],"11h - 12h":["","","","","","bloqueado"],"12h - 13h":["almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","almoco:ALMOÇO","bloqueado"],"13h - 14h":["","","","","","bloqueado"],"14h - 15h":["","","","","","bloqueado"],"15h - 16h":["","","","","","bloqueado"],"16h - 17h":["","","","","","bloqueado"],"17h - 18h":["","","","","","bloqueado"],"18h - 19h":["","","","","","bloqueado"]},"especialidade":"Acompanhamento Terapêutico"}],"pacientes":[],"currentAgendaId":1,"nextPatId":1,"nextAgendaId":56,"_version":1779109222,"_resetAt":"2026-05-18"}
+
+// ═══════════════════════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════════════════════
+let agendas = [], pacientes = []
+let currentAgendaId = 1, nextPatId = 1, nextAgendaId = 1
+let editingCell = null, editingPatId = null
+let _laudoFile = null
+let cfgSel = new Set(), cfgQ = '', cfgF = ''
+let execucoes = {} // { 'YYYY-MM-DD': { 'NomePac|Esp': { feito:bool, obs:str } } }
+let collapsedGroups = {}
+
+// ═══════════════════════════════════════════════════════════
+// PERSISTÊNCIA — localStorage + servidor em paralelo
+// ═══════════════════════════════════════════════════════════
+const LS_KEY = 'psicoteam_v9_20260518'  // muda aqui para forçar reset do localStorage
+
+function stateObj() {
+  return { agendas, pacientes, currentAgendaId, nextPatId, nextAgendaId, execucoes }
+}
+
+function applyState(d) {
+  if (!d) return
+  if (Array.isArray(d.agendas)   && d.agendas.length)   agendas          = d.agendas
+  if (Array.isArray(d.pacientes) && d.pacientes.length)  pacientes        = d.pacientes
+  if (d.currentAgendaId != null) currentAgendaId = d.currentAgendaId
+  if (d.nextPatId)    nextPatId    = d.nextPatId
+  if (d.nextAgendaId) nextAgendaId = d.nextAgendaId
+  if (d.execucoes && typeof d.execucoes === 'object') execucoes = d.execucoes
+}
+
+let _saveTimer = null
+function saveData() {
+  // 1. Salva imediatamente no localStorage
+  try { localStorage.setItem(LS_KEY, JSON.stringify(stateObj())) } catch(e) {}
+  showInd('💾 Salvando…','saving')
+  // 2. Envia ao servidor com debounce
+  clearTimeout(_saveTimer)
+  _saveTimer = setTimeout(async () => {
+    try {
+      const r = await fetch('/api/data', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(stateObj())
+      })
+      if (r.ok) showInd('✅ Salvo','ok')
+      else showInd('⚠️ Salvo local','saving')
+    } catch(e) {
+      showInd('⚠️ Salvo local (servidor offline)','saving')
+    }
+  }, 600)
+}
+
+async function loadData(){
+  // Garante que NUNCA trava — carrega seed imediatamente, depois busca dados mais recentes
+  try { applyState(SEED) } catch(e) {}
+  showPage('agenda')
+  checkAlertas()
+
+  // Tenta localStorage
+  try {
+    const ls = localStorage.getItem(LS_KEY)
+    if (ls) {
+      const parsed = JSON.parse(ls)
+      if ((parsed.agendas?.length||0) >= agendas.length || (parsed.pacientes?.length||0) > 0) {
+        applyState(parsed); showPage(currentPage); checkAlertas()
+      }
+    }
+  } catch(e) {}
+
+  // Tenta servidor em background
+  try {
+    const ctrl = new AbortController()
+    setTimeout(() => ctrl.abort(), 6000)
+    const r = await fetch('/api/data', {signal: ctrl.signal})
+    if (r.ok) {
+      const j = await r.json()
+      if (j.ok && j.data) {
+        const d = j.data
+        if ((d.agendas?.length||0) >= agendas.length || (d.pacientes?.length||0) > 0) {
+          applyState(d)
+          try { localStorage.setItem(LS_KEY, JSON.stringify(stateObj())) } catch(e){}
+          showPage(currentPage); checkAlertas()
+        }
+      }
+    }
+  } catch(e) { console.warn('server:', e.message) }
+}
+async function syncServer() {
+  try {
+    const r = await fetch('/api/data')
+    if (!r.ok) return
+    const j = await r.json()
+    if (!j.ok || !j.data) return
+    const d = j.data
+    // Usa dados do servidor só se tiver mais agendas/pacientes que o local
+    const srvAgendas   = Array.isArray(d.agendas)   ? d.agendas.length   : 0
+    const srvPacientes = Array.isArray(d.pacientes)  ? d.pacientes.length : 0
+    if (srvAgendas > agendas.length || srvPacientes > pacientes.length) {
+      applyState(d)
+      try { localStorage.setItem(LS_KEY, JSON.stringify(stateObj())) } catch(e) {}
+      showPage(currentPage)
+      checkAlertas()
+    }
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════
+const ind = document.getElementById('ind')
+let _indTimer = null
+function showInd(msg, cls) {
+  ind.textContent = msg
+  ind.className = 'show ' + cls
+  clearTimeout(_indTimer)
+  if (cls === 'ok') _indTimer = setTimeout(() => ind.className = '', 2500)
+}
+
+function closeModal() {
+  document.getElementById('modal-bg').classList.remove('open')
+  editingCell = null; editingPatId = null; _laudoFile = null
+}
+
+function dias(dateStr) {
+  if (!dateStr) return null
+  const hoje = new Date(); hoje.setHours(0,0,0,0)
+  const d = new Date(dateStr + 'T12:00:00'); 
+  return Math.round((d - hoje) / 86400000)
+}
+
+// ═══════════════════════════════════════════════════════════
+// ALERTAS
+// ═══════════════════════════════════════════════════════════
+function checkAlertas() {
+  const banner = document.getElementById('alerts')
+  banner.innerHTML = ''
+  const list = []
+  const espLabels = {psicologia:'Psicologia',fono:'Fonoaudiologia',psicopedagogia:'Psicopedagogia',psicomotricidade:'Psicomotricidade',to:'T. Ocupacional'}
+
+  pacientes.forEach(p => {
+    // Guias por especialidade
+    if (p.guias) {
+      Object.entries(p.guias).forEach(([esp, g]) => {
+        if (!g?.venc) return
+        const d = dias(g.venc)
+        if (d !== null && d <= 30) {
+          const cls = d <= 7 ? 'urgente' : d <= 15 ? 'aviso' : 'ok-alert'
+          const txt = d < 0 ? `VENCIDA há ${-d}d` : d === 0 ? 'VENCE HOJE' : `Vence em ${d}d`
+          list.push({cls, msg:`📋 Guia ${espLabels[esp]||esp} — <strong>${p.nome}</strong>: ${txt}`})
+        }
+      })
+    } else if (p.guiaVenc) {
+      const d = dias(p.guiaVenc)
+      if (d !== null && d <= 30) {
+        const cls = d <= 7 ? 'urgente' : d <= 15 ? 'aviso' : 'ok-alert'
+        const txt = d < 0 ? `VENCIDA há ${-d}d` : d === 0 ? 'VENCE HOJE' : `Vence em ${d}d`
+        list.push({cls, msg:`📋 Guia — <strong>${p.nome}</strong>: ${txt}`})
+      }
+    }
+    // Laudo
+    if (p.laudoVenc) {
+      const d = dias(p.laudoVenc)
+      if (d !== null && d <= 30) {
+        const cls = d <= 7 ? 'urgente' : d <= 15 ? 'aviso' : 'ok-alert'
+        const txt = d < 0 ? `VENCIDO há ${-d}d` : d === 0 ? 'VENCE HOJE' : `Vence em ${d}d`
+        list.push({cls, msg:`📄 Laudo — <strong>${p.nome}</strong>: ${txt}`})
+      }
+    }
+  })
+
+  list.slice(0,5).forEach(a => {
+    const div = document.createElement('div')
+    div.className = 'alert-item ' + a.cls
+    div.innerHTML = a.msg + '<button class="alert-close" onclick="this.parentNode.remove()">✕</button>'
+    banner.appendChild(div)
+  })
+
+  const navPac = document.getElementById('nav-pacientes')
+  if (navPac) {
+    navPac.querySelector('.badge')?.remove()
+    if (list.length) navPac.innerHTML += `<span class="badge">${list.length}</span>`
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SIDEBAR
+// ═══════════════════════════════════════════════════════════
+function renderSidebar() {
+  const grupos = {}
+  agendas.forEach(a => {
+    const esp = a.especialidade || 'Outros'
+    if (!grupos[esp]) grupos[esp] = []
+    grupos[esp].push(a)
+  })
+  let html = ''
+  Object.keys(grupos).sort().forEach(esp => {
+    const open = collapsedGroups[esp] !== false
+    const key = esp.replace(/\s/g,'_')
+    html += `<div class="grp-hdr" onclick="toggleGrp('${esp}')">
+      <span id="arr-${key}">${open?'▼':'▶'}</span> ${esp}
+    </div>
+    <div class="grp-items" id="grp-${key}" style="max-height:${open?'600px':'0'}">
+      ${grupos[esp].map(a => `<div class="ag-item${a.id===currentAgendaId?' active':''}" onclick="switchAg(${a.id})">
+        <div class="ag-dot" style="background:${a.cor||'#1b5e20'}"></div>
+        <span style="flex:1">${a.nome}</span>
+      </div>`).join('')}
+    </div>`
+  })
+  document.getElementById('sidebar-agendas').innerHTML = html
+}
+
+function toggleGrp(esp) {
+  const key = esp.replace(/\s/g,'_')
+  const grp = document.getElementById('grp-'+key)
+  const arr = document.getElementById('arr-'+key)
+  const open = grp.style.maxHeight !== '0px' && grp.style.maxHeight !== '0'
+  grp.style.maxHeight = open ? '0' : '600px'
+  arr.textContent = open ? '▶' : '▼'
+  collapsedGroups[esp] = !open
+}
+
+function switchAg(id) { currentAgendaId = id; showPage('agenda') }
+
+// ═══════════════════════════════════════════════════════════
+// AGENDA — RENDER
+// ═══════════════════════════════════════════════════════════
+function getAg() { return agendas.find(a => a.id === currentAgendaId) }
+
+function getType(v) {
+  if (!v) return 'vazio'
+  if (v === 'bloqueado') return 'bloqueado'
+  if (v.startsWith('almoco:')) return 'almoco'
+  if (v.startsWith('reuniao:')) return 'reuniao'
+  return 'paciente'
+}
+
+function parsePac(v) {
+  const parts = v.split('|')
+  let falta = false, obs = ''
+  for (let i = 2; i < parts.length; i++) {
+    if (parts[i] === 'falta') falta = true
+    else if (parts[i].startsWith('obs:')) obs = parts[i].slice(4)
+  }
+  return { nome: parts[0]||'', conv: parts[1]||'Unimed', falta, obs }
+}
+
+function buildVal(nome, conv, falta, obs) {
+  let v = nome + '|' + conv
+  if (falta) v += '|falta'
+  if (obs?.trim()) v += '|obs:' + obs.trim()
+  return v
+}
+
+function pacClass(conv, falta) {
+  if (falta) return 'pac-falta'
+  if (conv === 'Unimed Intercâmbio') return 'pac-intercambio'
+  if (conv === 'Particular') return 'pac-particular'
+  return 'pac-unimed'
+}
+
+
+// ─── AGENDA SUPERVISÃO (layout especial) ─────────────────────────────────────
+function getATAgendas() {
+  return agendas.filter(function(a){ return a.especialidade === 'Acompanhamento Terapêutico' })
+}
+
+function renderAgendaSupervisao(ag) {
+  var secoes = ['Matutino','Vespertino','Sábado']
+  var secIcons = {Matutino:'🌅',Vespertino:'🌇',Sábado:'📅'}
+  var secDesc  = {Matutino:'07h – 12h',Vespertino:'13h – 18h',Sábado:'Manhã'}
+
+  var html = '<div style="background:#e8eaf6;border:1px solid #c5cae9;border-radius:8px;padding:9px 14px;font-size:12px;color:#1a237e;margin-bottom:14px">' +
+    '📌 Agenda de supervisão — sem horários fixos. Clique numa célula para registrar um supervisionando.' +
+    '</div>'
+
+  secoes.forEach(function(sec) {
+    if (!ag.slots) ag.slots = {}
+    if (!ag.slots[sec]) ag.slots[sec] = ['','','','','','']
+    var slots = ag.slots[sec]
+    var rows  = buildSupRows(slots, ag.id, sec)
+
+    html += '<div class="sup-section">' +
+      '<div class="sup-section-title">' + secIcons[sec] + ' ' + sec +
+      ' <span style="opacity:.7;font-weight:400;font-size:11px">— ' + secDesc[sec] + '</span></div>' +
+      '<div class="sup-grid"><table class="sup-table"><thead><tr>' +
+      DIAS.map(function(d){ return '<th class="dia-col">' + d + '</th>' }).join('') +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div></div>'
+  })
+  return html
+}
+
+function buildSupRows(slots, agId, secao) {
+  var maxRows = 4
+  for (var di2 = 0; di2 < 6; di2++) {
+    var v = slots[di2] || ''
+    var n = v ? v.split(';;').filter(Boolean).length : 0
+    if (n + 1 > maxRows) maxRows = n + 1
+  }
+
+  var rows = ''
+  for (var row = 0; row < maxRows; row++) {
+    rows += '<tr>'
+    for (var di = 0; di < 6; di++) {
+      var val   = slots[di] || ''
+      var items = val ? val.split(';;').filter(Boolean) : []
+      var item  = items[row] || ''
+      // Use data attributes to avoid escaping issues
+      var dataAttrs = 'data-agid="' + agId + '" data-sec="' + secao + '" data-di="' + di + '" data-row="' + row + '"'
+      if (item) {
+        var parts    = item.split('|')
+        var nome     = parts[0] || ''
+        var conv     = parts[1] || ''
+        var atNome   = parts[2] || ''
+        var convColor = conv==='Particular'?'#1565c0':conv==='Unimed Intercâmbio'?'#6a1b9a':'#1b5e20'
+        rows += '<td class="sup-ocupado" ' + dataAttrs + ' onclick="clickSupCell(this)">' +
+          '<span style="color:' + convColor + '">' + nome.split(' ').slice(0,2).join(' ') + '</span>' +
+          (atNome ? '<br><span style="font-size:9px;color:#e91e8c">AT: ' + atNome + '</span>' : '') +
+          '</td>'
+      } else {
+        rows += '<td ' + dataAttrs + ' onclick="clickSupCell(this)">' +
+          '<span style="color:#c5cae9;font-size:18px">+</span></td>'
+      }
+    }
+    rows += '</tr>'
+  }
+  return rows
+}
+
+function clickSupCell(el) {
+  if (!isAdmin) return
+  var agId  = parseInt(el.dataset.agid)
+  var secao = el.dataset.sec
+  var di    = parseInt(el.dataset.di)
+  var row   = parseInt(el.dataset.row)
+  openSupModal(agId, secao, di, row)
+}
+
+
+function openSupModal(agId, secao, di, row) {
+  if (!isAdmin) return
+  var ag = agendas.find(function(a){ return a.id===agId })
+  if (!ag) return
+  if (!ag.slots) ag.slots = {}
+  if (!ag.slots[secao]) ag.slots[secao] = ['','','','','','']
+
+  var val   = ag.slots[secao][di] || ''
+  var items = val ? val.split(';;').filter(Boolean) : []
+  var item  = items[row] || ''
+  var parts = item.split('|')
+  var nome  = parts[0] || ''
+  var conv  = parts[1] || 'Unimed'
+  var atSel = parts[2] || ''
+
+  var patOpts = pacientes.map(function(p){
+    return '<option value="' + p.nome + '|' + (p.convenio||'Unimed') + '"' + (nome===p.nome?' selected':'') + '>' + p.nome + '</option>'
+  }).join('')
+
+  var convOpts = CONVS.map(function(c){
+    return '<option' + (conv===c?' selected':'') + '>' + c + '</option>'
+  }).join('')
+
+  var atList = getATAgendas()
+  var atOpts = '<option value="">— selecione o AT —</option>' +
+    atList.map(function(a){
+      var n = a.nome.replace(/^AT - /,'').replace(/^A[.]T /,'')
+      return '<option value="' + n + '"' + (atSel===n?' selected':'') + '>' + n + '</option>'
+    }).join('')
+
+  var supNome = ag.nome.replace('Pacientes - ','')
+  var diaLabel = DIAS[di]
+
+  // Store current editing context for save button
+  window._supEdit = {agId: agId, secao: secao, di: di, row: row, hasItem: !!item}
+
+  document.getElementById('modal-content').innerHTML =
+    '<h3>📌 ' + supNome + '<br>' +
+    '<span style="font-size:12px;color:var(--muted);font-weight:400">' + secao + ' · ' + diaLabel + '</span></h3>' +
+
+    '<div class="form-group"><label>Selecionar paciente</label>' +
+    '<select id="sup-pat-sel" onchange="fillSupPat(this.value)">' +
+    '<option value="">— selecionar —</option>' + patOpts + '</select></div>' +
+
+    '<div class="form-group"><label>Ou digitar nome</label>' +
+    '<input type="text" id="sup-nome" value="' + nome + '" placeholder="Nome do supervisionando"></div>' +
+
+    '<div class="form-group"><label>Convênio</label>' +
+    '<select id="sup-conv">' + convOpts + '</select></div>' +
+
+    '<div class="form-group"><label>👤 Assistente Terapêutico (AT)</label>' +
+    '<select id="sup-at-sel">' + atOpts + '</select></div>' +
+
+    '<div class="modal-actions">' +
+    '<button class="btn btn-outline" onclick="closeModal()">Cancelar</button>' +
+    (item ? '<button class="btn btn-red" onclick="doSaveSupCell(true)">Remover</button>' : '') +
+    '<button class="btn btn-blue" onclick="doSaveSupCell(false)">Salvar</button>' +
+    '</div>'
+
+  document.getElementById('modal-bg').classList.add('open')
+}
+
+function doSaveSupCell(remove) {
+  var e = window._supEdit
+  if (!e) return
+  saveSupCell(e.agId, e.secao, e.di, e.row, remove)
+}
+
+
+function fillSupPat(v) {
+  if (!v) return
+  var parts = v.split('|')
+  document.getElementById('sup-nome').value = parts[0] || ''
+  var s = document.getElementById('sup-conv')
+  for (var i=0; i<s.options.length; i++) {
+    if (s.options[i].value === (parts[1]||'Unimed')) { s.selectedIndex = i; break }
+  }
+}
+
+function saveSupCell(agId, secao, di, row, remove) {
+  var ag = agendas.find(function(a){ return a.id===agId })
+  if (!ag) return
+  var val   = ag.slots[secao][di] || ''
+  var items = val ? val.split(';;').filter(Boolean) : []
+
+  if (remove) {
+    items.splice(row, 1)
+  } else {
+    var nome = document.getElementById('sup-nome').value.trim()
+    if (!nome) { alert('Digite o nome'); return }
+    var conv  = document.getElementById('sup-conv').value
+    var atNome = document.getElementById('sup-at-sel').value
+    var entry = nome + '|' + conv + (atNome ? '|' + atNome : '')
+    if (row < items.length) items[row] = entry
+    else items.push(entry)
+  }
+
+  ag.slots[secao][di] = items.join(';;')
+  saveData(); closeModal(); showPage('agenda')
+}
+
+// Stubs for compatibility
+function saveSupSlot() {}
+function openSupSlotModal() {}
+
+function renderAgenda() {
+  const ag = getAg()
+  if (!ag) return '<p style="color:var(--muted);padding:20px;font-size:13px">Selecione uma agenda no menu.</p>'
+  // Tipo especial: supervisão
+  if (ag.tipo === 'supervisao') return renderAgendaSupervisao(ag)
+
+  let html = `<div class="legend">
+    <span style="font-weight:600;font-size:11px">Legenda:</span>
+    <div style="display:flex;align-items:center;gap:4px"><div class="leg-dot" style="background:#1b5e20"></div><span style="font-size:11px">Unimed</span></div>
+    <div style="display:flex;align-items:center;gap:4px"><div class="leg-dot" style="background:#a5d6a7;border:1px solid #888"></div><span style="font-size:11px">Intercâmbio</span></div>
+    <div style="display:flex;align-items:center;gap:4px"><div class="leg-dot" style="background:#1565c0"></div><span style="font-size:11px">Particular</span></div>
+    <div style="display:flex;align-items:center;gap:4px"><div class="leg-dot" style="background:#c62828"></div><span style="font-size:11px">Falta</span></div>
+    <div style="display:flex;align-items:center;gap:4px"><div class="leg-dot" style="background:#00bcd4"></div><span style="font-size:11px">Almoço</span></div>
+    <div style="display:flex;align-items:center;gap:4px"><div class="leg-dot" style="background:#7b1fa2"></div><span style="font-size:11px">Reunião</span></div>
+  </div>`
+
+  if (ag.obs) html += `<div style="background:#fffde7;border:1px solid #f9a825;border-radius:6px;padding:8px 12px;font-size:12px;color:#5f3f00;margin-bottom:10px">📝 ${ag.obs}</div>`
+
+  const activeSlots = ag.activeSlots || [...SLOTS_SEG_SEX]
+  const allSlots = [...new Set([...SLOTS_SEG_SEX,...SLOTS_SAB])].filter(s => activeSlots.includes(s) || SLOTS_SAB.includes(s))
+
+  html += '<div class="wrap"><table><thead><tr><th class="hora-col">Horário</th>' + DIAS.map(d=>`<th>${d}</th>`).join('') + '</tr></thead><tbody>'
+
+  allSlots.forEach(slot => {
+    if (SLOTS_SEG_SEX.includes(slot) && !activeSlots.includes(slot)) return
+    html += `<tr><td class="hora-cell">${slot}</td>`
+    for (let di = 0; di < 6; di++) {
+      if (!SLOTS_SEG_SEX.includes(slot) && di < 5) { html += '<td class="bloqueado"></td>'; continue }
+      const val = (ag.slots?.[slot]?.[di]) || ''
+      const type = getType(val)
+      if (type === 'bloqueado') html += '<td class="bloqueado"></td>'
+      else if (type === 'almoco')  html += `<td class="almoco">${val.slice(7)||'ALMOÇO'}</td>`
+      else if (type === 'reuniao') html += `<td class="reuniao">${val.slice(8)||'REUNIÃO'}</td>`
+      else if (type === 'paciente') {
+        const {nome,conv,falta,obs} = parsePac(val)
+        const cls = pacClass(conv,falta)
+        html += `<td class="${cls} paciente-cell" onclick="openCellModal('${slot.replace(/'/g,"\\'")}',${di})"><span>${nome}</span><span class="conv">${conv}</span></td>`
+      } else {
+        html += `<td class="vazio" onclick="openCellModal('${slot.replace(/'/g,"\\'")}',${di})"></td>`
+      }
+    }
+    html += '</tr>'
+  })
+  html += '</tbody></table></div>'
+  return html
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODAL CÉLULA
+// ═══════════════════════════════════════════════════════════
+function openCellModal(slot, di) {
+  if(!isAdmin) return
+  editingCell = {slot, di}
+  const ag = getAg()
+  const val = ag?.slots?.[slot]?.[di] || ''
+  const type = getType(val)
+  let nome='',conv='Unimed',falta=false,obs=''
+  if (type === 'paciente') { const p = parsePac(val); nome=p.nome; conv=p.conv; falta=p.falta; obs=p.obs }
+  const patOpts = pacientes.map(p=>`<option value="${p.nome}|${p.convenio||'Unimed'}" ${nome===p.nome?'selected':''}>${p.nome} (${p.convenio||''})</option>`).join('')
+  const convOpts = CONVS.map(c=>`<option ${conv===c?'selected':''}>${c}</option>`).join('')
+  const evVal = type==='almoco'?val.slice(7):type==='reuniao'?val.slice(8):''
+
+  document.getElementById('modal-content').innerHTML = `
+    <h3>✏️ ${slot} / ${DIAS[di]}</h3>
+    <div class="form-group"><label>Tipo</label>
+      <select id="m-type" onchange="toggleCellType(this.value)">
+        <option value="paciente" ${type==='paciente'||type==='vazio'?'selected':''}>Paciente</option>
+        <option value="almoco" ${type==='almoco'?'selected':''}>Almoço</option>
+        <option value="reuniao" ${type==='reuniao'?'selected':''}>Reunião / Evento</option>
+        <option value="vazio">Limpar horário</option>
+      </select>
+    </div>
+    <div id="pat-fields">
+      <div class="form-group"><label>Selecionar paciente</label>
+        <select id="m-pat-sel" onchange="fillFromPat(this.value)"><option value="">— selecionar —</option>${patOpts}</select>
+      </div>
+      <div class="form-group"><label>Ou digitar nome</label><input type="text" id="m-name" value="${nome}" placeholder="Nome do paciente"></div>
+      <div class="form-group"><label>Convênio</label><select id="m-conv">${convOpts}</select></div>
+      <div class="form-group"><label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="m-falta" ${falta?'checked':''} style="width:auto"> Marcar como FALTA
+      </label></div>
+      <div class="form-group"><label>Observação</label><textarea id="m-obs">${obs}</textarea></div>
+    </div>
+    <div id="event-fields" style="display:none">
+      <div class="form-group"><label>Descrição</label><input type="text" id="m-event" value="${evVal}" placeholder="Ex: ALMOÇO"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      ${val?'<button class="btn btn-red" onclick="clearCell()">Limpar</button>':''}
+      <button class="btn btn-blue" onclick="saveCell()">Salvar</button>
+    </div>`
+  toggleCellType(document.getElementById('m-type').value)
+  document.getElementById('modal-bg').classList.add('open')
+}
+
+function toggleCellType(v) {
+  document.getElementById('pat-fields').style.display = v==='paciente' ? '' : 'none'
+  document.getElementById('event-fields').style.display = v==='paciente' ? 'none' : ''
+}
+function fillFromPat(v) {
+  if (!v) return
+  const [nome, conv] = v.split('|')
+  document.getElementById('m-name').value = nome
+  const s = document.getElementById('m-conv')
+  for (const o of s.options) if (o.value===conv) { o.selected=true; break }
+}
+function saveCell() {
+  const ag=getAg(); if(!ag||!editingCell) return
+  const {slot,di}=editingCell
+  if (!ag.slots) ag.slots={}
+  if (!ag.slots[slot]) ag.slots[slot]=['','','','','','bloqueado']
+  const type=document.getElementById('m-type').value
+  if (type==='vazio') ag.slots[slot][di]=''
+  else if (type==='almoco') ag.slots[slot][di]='almoco:'+(document.getElementById('m-event').value||'ALMOÇO')
+  else if (type==='reuniao') ag.slots[slot][di]='reuniao:'+(document.getElementById('m-event').value||'REUNIÃO')
+  else {
+    const n=document.getElementById('m-name').value.trim()
+    if (!n) {alert('Digite o nome');return}
+    ag.slots[slot][di]=buildVal(n,document.getElementById('m-conv').value,document.getElementById('m-falta').checked,document.getElementById('m-obs').value)
+  }
+  saveData();closeModal();showPage('agenda')
+}
+function clearCell() {
+  const ag=getAg(); if(!ag||!editingCell) return
+  ag.slots[editingCell.slot][editingCell.di]=''
+  saveData();closeModal();showPage('agenda')
+}
+
+// MODAL NOVO AGENDAMENTO
+function openNewCellModal() {
+  if(!isAdmin) return
+  const ag=getAg()
+  const activeSlots=ag?.activeSlots||[...SLOTS_SEG_SEX]
+  const slotOpts=[...new Set([...activeSlots,...SLOTS_SAB])].map(s=>`<option>${s}</option>`).join('')
+  const diaOpts=DIAS.map((d,i)=>`<option value="${i}">${d}</option>`).join('')
+  const patOpts=pacientes.map(p=>`<option value="${p.nome}|${p.convenio||'Unimed'}">${p.nome} (${p.convenio||''})</option>`).join('')
+  document.getElementById('modal-content').innerHTML=`
+    <h3>➕ Novo agendamento</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Dia</label><select id="m-day">${diaOpts}</select></div>
+      <div class="form-group"><label>Horário</label><select id="m-slot">${slotOpts}</select></div>
+    </div>
+    <div class="form-group"><label>Paciente</label><select id="m-pat-sel" onchange="fillFromPat(this.value)"><option value="">— selecionar —</option>${patOpts}</select></div>
+    <div class="form-group"><label>Ou digitar nome</label><input type="text" id="m-name" placeholder="Nome"></div>
+    <div class="form-group"><label>Convênio</label><select id="m-conv">${CONVS.map(c=>`<option>${c}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Observação</label><textarea id="m-obs"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-blue" onclick="saveNewCell()">Salvar</button>
+    </div>`
+  document.getElementById('modal-bg').classList.add('open')
+}
+function saveNewCell() {
+  const ag=getAg(); if(!ag) return
+  const di=parseInt(document.getElementById('m-day').value)
+  const slot=document.getElementById('m-slot').value
+  const n=document.getElementById('m-name').value.trim()
+  if (!n) {alert('Digite o nome');return}
+  if (!ag.slots) ag.slots={}
+  if (!ag.slots[slot]) ag.slots[slot]=['','','','','','bloqueado']
+  ag.slots[slot][di]=buildVal(n,document.getElementById('m-conv').value,false,document.getElementById('m-obs').value)
+  saveData();closeModal();showPage('agenda')
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODAL PACIENTE
+// ═══════════════════════════════════════════════════════════
+function openPatModal(id) {
+  _laudoFile = null
+  editingPatId = id
+  const p = id ? pacientes.find(x=>x.id===id) : null
+  const convOpts = CONVS.map(c=>`<option ${p?.convenio===c?'selected':''}>${c}</option>`).join('')
+
+  const espDefs = [
+    {k:'psicologia',    lb:'Psicologia ABA',    ic:'🧠'},
+    {k:'fono',          lb:'Fonoaudiologia',     ic:'🗣'},
+    {k:'psicopedagogia',lb:'Psicopedagogia',     ic:'📚'},
+    {k:'psicomotricidade',lb:'Psicomotricidade', ic:'🤸'},
+    {k:'to',            lb:'Terapia Ocupacional',ic:'🖐'}
+  ]
+
+  const guiaPanes = espDefs.map((e,i) => {
+    const g = (p?.guias?.[e.k]) || {}
+    return `<div class="gtab-pane${i===0?' active':''}" id="gtab-${e.k}">
+      <div style="background:#f5f5f5;border-radius:6px;padding:7px 10px;font-size:11px;font-weight:600;color:#333;margin-bottom:10px">${e.ic} Guia de ${e.lb}</div>
+      <div class="form-row">
+        <div class="form-group"><label>Nº da Guia</label><input type="text" id="g-${e.k}-num" value="${g.num||''}" placeholder="Ex: 123456"></div>
+        <div class="form-group"><label>📅 Vencimento</label><input type="date" id="g-${e.k}-venc" value="${g.venc||''}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>🔢 Sessões autorizadas</label><input type="number" id="g-${e.k}-sessoes" value="${g.sessoes||''}" placeholder="Ex: 20" min="0"></div>
+        <div class="form-group"><label>✅ Sessões realizadas</label><input type="number" id="g-${e.k}-realizadas" value="${g.realizadas||''}" placeholder="Ex: 8" min="0"></div>
+      </div>
+      <div class="form-group"><label>📝 Observações</label><input type="text" id="g-${e.k}-obs" value="${g.obs||''}" placeholder="Ex: Renovar em março"></div>
+    </div>`
+  }).join('')
+
+  const lf = p?.laudoArquivo
+  const laudoPrev = lf
+    ? `<div style="display:flex;align-items:center;gap:8px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:6px;padding:8px 10px">
+        <span>${lf.type?.startsWith('image/')?'🖼️':'📕'}</span>
+        <div style="flex:1;min-width:0;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${lf.name||'Arquivo'}</div>
+        ${lf.dataUrl?`<a href="${lf.dataUrl}" target="_blank" style="font-size:11px;color:#00695c;font-weight:600;text-decoration:none">↗ Abrir</a>`:''}
+        <button onclick="removeLaudo()" style="border:none;background:none;cursor:pointer;color:#c62828;font-size:16px">✕</button>
+      </div>`
+    : '<div style="font-size:11px;color:#999">Nenhum arquivo anexado</div>'
+
+  document.getElementById('modal-content').innerHTML = `
+    <h3>${p?'✏️ Editar paciente':'➕ Novo paciente'}</h3>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('dados',this)">📋 Dados</button>
+      <button class="tab-btn" onclick="switchTab('perfil',this)">🧠 Perfil</button>
+      <button class="tab-btn" onclick="switchTab('horas',this)">⏱ Horas Sol.</button>
+      <button class="tab-btn" onclick="switchTab('guias',this)">📄 Guias</button>
+    </div>
+    <div class="tab-pane active" id="tab-dados">
+      <div class="form-group"><label>Nome completo *</label><input type="text" id="p-nome" value="${p?.nome||''}" placeholder="Nome do paciente"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Telefone</label><input type="text" id="p-tel" value="${p?.telefone||''}" placeholder="(62) 99999-9999"></div>
+        <div class="form-group"><label>Nascimento</label><input type="date" id="p-nasc" value="${p?.nascimento||''}"></div>
+      </div>
+      <div class="form-group"><label>Convênio / Plano</label><select id="p-conv">${convOpts}</select></div>
+      <div class="form-group"><label>💳 Número do Cartão / Carteirinha</label><input type="text" id="p-cartao" value="${p?.cartao||''}" placeholder="Ex: 0064.8000.082990.00-3"></div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:8px 0">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px">👨‍👩‍👦 Responsáveis</div>
+      <div class="form-row">
+        <div class="form-group"><label>Nome do Responsável 1</label><input type="text" id="p-resp1" value="${p?.responsavel1||''}" placeholder="Nome completo"></div>
+        <div class="form-group"><label>Telefone do Responsável 1</label><input type="text" id="p-tel-resp1" value="${p?.telResp1||''}" placeholder="(62) 99999-9999"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Nome do Responsável 2</label><input type="text" id="p-resp2" value="${p?.responsavel2||''}" placeholder="Nome completo"></div>
+        <div class="form-group"><label>Telefone do Responsável 2</label><input type="text" id="p-tel-resp2" value="${p?.telResp2||''}" placeholder="(62) 99999-9999"></div>
+      </div>
+      <div class="form-group"><label>Parentesco</label><input type="text" id="p-parentesco" value="${p?.parentesco||''}" placeholder="Ex: Mãe / Pai / Avó"></div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:8px 0">
+      <div class="form-group"><label>Observações</label><textarea id="p-obs" placeholder="Obs gerais...">${p?.obs||''}</textarea></div>
+    </div>
+    <div class="tab-pane" id="tab-perfil">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px">🏠 Informações Complementares</div>
+      <div class="form-group"><label>Mora com quem?</label>
+        <input type="text" id="p-mora" value="${p?.mora||''}" placeholder="Ex: Pai e mãe / Somente mãe / Avós..."></div>
+      <div class="form-group"><label>Alergia — Qual?</label>
+        <input type="text" id="p-alergia" value="${p?.alergia||''}" placeholder="Ex: Dipirona, amendoim... ou Não possui"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Verbal</label>
+          <select id="p-verbal" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px">
+            <option value="" ${!p?.verbal?'selected':''}>— selecione —</option>
+            <option value="Sim" ${p?.verbal==='Sim'?'selected':''}>Sim</option>
+            <option value="Não" ${p?.verbal==='Não'?'selected':''}>Não</option>
+            <option value="Parcialmente" ${p?.verbal==='Parcialmente'?'selected':''}>Parcialmente</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Faz uso de medicação?</label>
+          <select id="p-medicacao-yn" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px">
+            <option value="" ${!p?.medicacaoYN?'selected':''}>— selecione —</option>
+            <option value="Sim" ${p?.medicacaoYN==='Sim'?'selected':''}>Sim</option>
+            <option value="Não" ${p?.medicacaoYN==='Não'?'selected':''}>Não</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Medicação — Qual?</label>
+        <input type="text" id="p-medicacao" value="${p?.medicacao||''}" placeholder="Ex: Ritalina 10mg, Risperdal 0,5mg..."></div>
+      <div class="form-group"><label>🎮 Brinquedo / Objeto de preferência</label>
+        <input type="text" id="p-brinquedo" value="${p?.brinquedo||''}" placeholder="Ex: Carrinhos, tablets, bolas..."></div>
+      <div class="form-group"><label>⚠️ Comportamentos inadequados</label>
+        <textarea id="p-comportamentos" style="height:80px" placeholder="Descreva os comportamentos inadequados observados...">${p?.comportamentos||''}</textarea></div>
+    </div>
+
+    <div class="tab-pane" id="tab-horas">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:12px">⏱ Horas Solicitadas por Especialidade</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group"><label>🧠 Psicologia ABA</label>
+          <input type="text" id="h-psicologia" value="${p?.horasSol?.psicologia||''}" placeholder="Ex: 10h/semana"></div>
+        <div class="form-group"><label>🗣 Fonoaudiologia ABA</label>
+          <input type="text" id="h-fono" value="${p?.horasSol?.fono||''}" placeholder="Ex: 2h/semana"></div>
+        <div class="form-group"><label>📚 Psicopedagogia</label>
+          <input type="text" id="h-psicopedagogia" value="${p?.horasSol?.psicopedagogia||''}" placeholder="Ex: 2h/semana"></div>
+        <div class="form-group"><label>🤸 Psicomotricidade</label>
+          <input type="text" id="h-psicomotricidade" value="${p?.horasSol?.psicomotricidade||''}" placeholder="Ex: 2h/semana"></div>
+        <div class="form-group"><label>🖐 Terapia Ocupacional</label>
+          <input type="text" id="h-to" value="${p?.horasSol?.to||''}" placeholder="Ex: 2h/semana"></div>
+        <div class="form-group"><label>🎵 Musicoterapia</label>
+          <input type="text" id="h-musicoterapia" value="${p?.horasSol?.musicoterapia||''}" placeholder="Ex: 1h/semana"></div>
+        <div class="form-group"><label>🥗 Nutricionista</label>
+          <input type="text" id="h-nutricionista" value="${p?.horasSol?.nutricionista||''}" placeholder="Ex: 1h/mês"></div>
+      </div>
+      <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:6px;padding:9px 12px;font-size:11px;color:#2e7d32;margin-top:6px">
+        ℹ️ Registre aqui as horas solicitadas pelo plano de saúde ou família para cada especialidade.
+      </div>
+    </div>
+
+    <div class="tab-pane" id="tab-guias">
+      <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:7px 10px;font-size:11px;color:#5f3f00;margin-bottom:10px">
+        ⚠️ Alertas automáticos 30, 15 e 7 dias antes do vencimento.
+      </div>
+      <div class="gtab-bar">
+        <button class="gactive" onclick="switchGTab('psicologia',this)">🧠 Psicologia</button>
+        <button onclick="switchGTab('fono',this)">🗣 Fono</button>
+        <button onclick="switchGTab('psicopedagogia',this)">📚 Psicopedagogia</button>
+        <button onclick="switchGTab('psicomotricidade',this)">🤸 Psicomotricidade</button>
+        <button onclick="switchGTab('to',this)">🖐 T. Ocupacional</button>
+        <button onclick="switchGTab('laudo',this)">📄 Laudo</button>
+      </div>
+      ${guiaPanes}
+      <div class="gtab-pane" id="gtab-laudo">
+        <div style="background:#f5f5f5;border-radius:6px;padding:7px 10px;font-size:11px;font-weight:600;color:#333;margin-bottom:10px">📄 Laudo / Relatório Médico</div>
+        <div class="form-row">
+          <div class="form-group"><label>📅 Vencimento</label><input type="date" id="p-laudo" value="${p?.laudoVenc||''}"></div>
+          <div class="form-group"><label>Tipo / CID</label><input type="text" id="p-laudo-tipo" value="${p?.laudoTipo||''}" placeholder="Ex: TEA – F84.0"></div>
+        </div>
+        <div class="form-group"><label>Médico / CRM</label><input type="text" id="p-laudo-obs" value="${p?.laudoObs||''}" placeholder="Ex: Dr. João Silva, CRM 12345"></div>
+        <div class="form-group"><label>📝 Diagnóstico</label><textarea id="p-diagnostico" style="height:70px" placeholder="Descreva o diagnóstico...">${p?.diagnostico||''}</textarea></div>
+        <div class="form-group" style="margin-top:10px">
+          <label>📎 Arquivo do Laudo</label>
+          <div class="laudo-drop" onclick="document.getElementById('laudo-inp').click()"
+            ondragover="event.preventDefault();this.classList.add('drag')"
+            ondragleave="this.classList.remove('drag')"
+            ondrop="this.classList.remove('drag');handleLaudoDrop(event)">
+            <div style="font-size:24px;margin-bottom:5px">📂</div>
+            <div style="font-size:12px;font-weight:600;color:#444">Clique ou arraste o arquivo</div>
+            <div style="font-size:11px;color:#888;margin-top:3px">PDF, JPG, PNG — máx. 5MB</div>
+            <input type="file" id="laudo-inp" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleLaudoFile(this.files[0])">
+          </div>
+          <div id="laudo-prev" style="margin-top:8px">${laudoPrev}</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      ${p?`<button class="btn btn-red" onclick="deletePat(${p.id})">Remover</button>`:''}
+      <button class="btn btn-blue" onclick="savePat()">Salvar</button>
+    </div>`
+  document.getElementById('modal-bg').classList.add('open')
+  // In view mode: disable all form inputs
+  if (!isAdmin) {
+    setTimeout(function() {
+      var modal = document.getElementById('modal-content')
+      modal.querySelectorAll('input,select,textarea').forEach(function(el){ el.disabled = true })
+      modal.querySelectorAll('.modal-actions').forEach(function(el){ el.style.display='none' })
+      modal.querySelectorAll('.tab-btn').forEach(function(el){ el.style.pointerEvents='auto' })
+      var hdr = modal.querySelector('h3')
+      if (hdr) hdr.insertAdjacentHTML('afterend','<div style="background:#e3f2fd;border:1px solid #90caf9;border-radius:6px;padding:6px 10px;font-size:11px;color:#1565c0;margin-bottom:10px">👁 Modo visualização — somente leitura</div>')
+    }, 50)
+  }
+}
+
+function switchTab(tab,btn) {
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'))
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'))
+  document.getElementById('tab-'+tab).classList.add('active')
+  btn.classList.add('active')
+}
+
+function switchGTab(name,btn) {
+  const bar=btn.closest('.gtab-bar')
+  bar?.querySelectorAll('button').forEach(b=>b.classList.remove('gactive'))
+  document.querySelectorAll('.gtab-pane').forEach(p=>p.classList.remove('active'))
+  btn.classList.add('gactive')
+  document.getElementById('gtab-'+name)?.classList.add('active')
+}
+
+function handleLaudoFile(file) {
+  if (!file) return
+  if (file.size > 5*1024*1024) { alert('Máximo 5MB'); return }
+  const r = new FileReader()
+  r.onload = e => {
+    _laudoFile = {name:file.name,size:file.size,type:file.type,dataUrl:e.target.result}
+    const prev=document.getElementById('laudo-prev')
+    if (prev) prev.innerHTML=`<div style="display:flex;align-items:center;gap:8px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:6px;padding:8px 10px">
+      <span>${file.type.startsWith('image/')?'🖼️':'📕'}</span>
+      <div style="flex:1;min-width:0;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${file.name}</div>
+      <a href="${e.target.result}" target="_blank" style="font-size:11px;color:#00695c;font-weight:600;text-decoration:none">↗ Abrir</a>
+      <button onclick="removeLaudo()" style="border:none;background:none;cursor:pointer;color:#c62828;font-size:16px">✕</button>
+    </div>`
+  }
+  r.readAsDataURL(file)
+}
+function handleLaudoDrop(ev) {
+  ev.preventDefault()
+  handleLaudoFile(ev.dataTransfer.files[0])
+}
+function removeLaudo() {
+  _laudoFile=null
+  document.getElementById('laudo-inp').value=''
+  document.getElementById('laudo-prev').innerHTML='<div style="font-size:11px;color:#999">Nenhum arquivo anexado</div>'
+}
+
+function savePat() {
+  const nome=document.getElementById('p-nome').value.trim()
+  if (!nome) {alert('Digite o nome do paciente');return}
+  const espKeys=['psicologia','fono','psicopedagogia','psicomotricidade','to']
+  const guias={}
+  espKeys.forEach(k=>{
+    guias[k]={
+      num:       document.getElementById('g-'+k+'-num')?.value||'',
+      venc:      document.getElementById('g-'+k+'-venc')?.value||'',
+      sessoes:   document.getElementById('g-'+k+'-sessoes')?.value||'',
+      realizadas:document.getElementById('g-'+k+'-realizadas')?.value||'',
+      obs:       document.getElementById('g-'+k+'-obs')?.value||''
+    }
+  })
+  const allVenc=espKeys.map(k=>guias[k].venc).filter(Boolean).sort()
+  const existing=editingPatId?pacientes.find(x=>x.id===editingPatId):null
+  const obj={
+    id:           editingPatId||nextPatId++,
+    nome,
+    telefone:     document.getElementById('p-tel').value,
+    nascimento:   document.getElementById('p-nasc').value,
+    convenio:     document.getElementById('p-conv').value,
+    cartao:       document.getElementById('p-cartao')?.value||'',
+    responsavel1: document.getElementById('p-resp1')?.value||'',
+    telResp1:     document.getElementById('p-tel-resp1')?.value||'',
+    responsavel2: document.getElementById('p-resp2')?.value||'',
+    telResp2:     document.getElementById('p-tel-resp2')?.value||'',
+    parentesco:   document.getElementById('p-parentesco')?.value||'',
+    obs:          document.getElementById('p-obs').value,
+    mora:         document.getElementById('p-mora')?.value||'',
+    alergia:      document.getElementById('p-alergia')?.value||'',
+    verbal:       document.getElementById('p-verbal')?.value||'',
+    medicacaoYN:  document.getElementById('p-medicacao-yn')?.value||'',
+    medicacao:    document.getElementById('p-medicacao')?.value||'',
+    brinquedo:    document.getElementById('p-brinquedo')?.value||'',
+    comportamentos: document.getElementById('p-comportamentos')?.value||'',
+    diagnostico:  document.getElementById('p-diagnostico')?.value||'',
+    horasSol: {
+      psicologia:      document.getElementById('h-psicologia')?.value||'',
+      fono:            document.getElementById('h-fono')?.value||'',
+      psicopedagogia:  document.getElementById('h-psicopedagogia')?.value||'',
+      psicomotricidade:document.getElementById('h-psicomotricidade')?.value||'',
+      to:              document.getElementById('h-to')?.value||'',
+      musicoterapia:   document.getElementById('h-musicoterapia')?.value||'',
+      nutricionista:   document.getElementById('h-nutricionista')?.value||''
+    },
+    guias,
+    guiaVenc:     allVenc[0]||'',
+    laudoVenc:    document.getElementById('p-laudo')?.value||'',
+    laudoTipo:    document.getElementById('p-laudo-tipo')?.value||'',
+    laudoObs:     document.getElementById('p-laudo-obs')?.value||'',
+    laudoArquivo: _laudoFile||(existing?.laudoArquivo||null)
+  }
+  if (editingPatId) { const i=pacientes.findIndex(x=>x.id===editingPatId); pacientes[i]=obj }
+  else pacientes.push(obj)
+  saveData();closeModal();showPage('pacientes');checkAlertas()
+}
+
+function deletePat(id) {
+  if (confirm('Remover este paciente?')) {
+    pacientes=pacientes.filter(x=>x.id!==id)
+    saveData();closeModal();showPage('pacientes')
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER PACIENTES
+// ═══════════════════════════════════════════════════════════
+function renderPacientes(filter='') {
+  const filtered=pacientes.filter(p=>(p.nome||'').toLowerCase().includes(filter.toLowerCase())||(p.convenio||'').toLowerCase().includes(filter.toLowerCase()))
+  const colors=['#1565c0','#6a1b9a','#b71c1c','#00695c','#e65100','#4e342e']
+  let html=`<input class="search-bar" placeholder="Buscar por nome ou convênio..." oninput="filterPats(this.value)" value="${filter}">`
+  if (!filtered.length) return html+'<p style="color:var(--muted);font-size:13px">Nenhum paciente encontrado.</p>'
+  filtered.forEach((p,i)=>{
+    const ini=p.nome.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase()
+    const col=colors[i%colors.length]
+    const bg=p.convenio==='Particular'?'#e3f2fd':p.convenio==='Unimed Intercâmbio'?'#f1f8e9':'#e8f5e9'
+    const tc=p.convenio==='Particular'?'#0d47a1':p.convenio==='Unimed Intercâmbio'?'#33691e':'#1b5e20'
+    html+=`<div class="pat-card">
+      <div class="av" style="background:${col}22;color:${col};cursor:pointer" onclick="openPatModal(${p.id})">${ini}</div>
+      <div class="pat-info" style="cursor:pointer" onclick="openPatModal(${p.id})">
+        <h4>${p.nome}</h4>
+        <p>${p.telefone||''}${p.nascimento?' · '+p.nascimento.split('-').reverse().join('/'):''}</p>
+        ${p.responsavel1?`<p style="font-size:10px;color:var(--muted);margin-top:1px">👤 ${p.responsavel1}${p.parentesco?' ('+p.parentesco+')':''}${p.telResp1?' · '+p.telResp1:''}</p>`:''}
+        ${p.cartao?`<p style="font-size:10px;color:var(--muted);margin-top:1px">💳 ${p.cartao}</p>`:''}
+        ${p.verbal?`<p style="font-size:10px;color:var(--muted);margin-top:1px">🗣 Verbal: ${p.verbal}${p.alergia?' · ⚠️ Alergia: '+p.alergia:''}</p>`:''}
+        ${p.medicacaoYN==='Sim'?`<p style="font-size:10px;color:#e65100;margin-top:1px">💊 ${p.medicacao||'Medicação não especificada'}</p>`:''}
+      </div>
+      <span class="conv-badge" style="background:${bg};color:${tc}">${p.convenio||''}</span>
+      <button class="btn btn-outline btn-sm" style="margin-left:6px;flex-shrink:0" onclick="imprimirPacId(${p.id})">🖨 Agenda</button>
+    </div>`
+  })
+  return html
+}
+function filterPats(v) { document.getElementById('content').innerHTML=renderPacientes(v) }
+
+// ═══════════════════════════════════════════════════════════
+// MODAL AGENDA
+// ═══════════════════════════════════════════════════════════
+function openAgendaModal(id) {
+  if(!isAdmin) return
+  const ag=id?agendas.find(a=>a.id===id):null
+  const activeSlots=ag?.activeSlots||[...SLOTS_SEG_SEX]
+  const allSlots=[...new Set([...SLOTS_SEG_SEX,...SLOTS_SAB])]
+  const slotRows=allSlots.map(s=>{
+    const on=activeSlots.includes(s)
+    const sid='st-'+s.replace(/[^a-z0-9]/gi,'_')
+    return `<div class="slot-row">
+      <span class="slot-label">${s}</span>
+      <button type="button" class="slot-toggle ${on?'on':'off'}" id="${sid}" onclick="toggleSlot('${s}')">${on?'✓':'✗'}</button>
+      <span id="${sid}-lbl" style="font-size:11px;color:var(--muted)">${on?'Ativo':'Bloqueado'}</span>
+    </div>`
+  }).join('')
+  const swatches=CORES.map(c=>`<div class="swatch ${ag?.cor===c?'sel':''}" style="background:${c}" onclick="selCor('${c}')" id="sw-${c.slice(1)}" title="${c}"></div>`).join('')
+
+  document.getElementById('modal-content').innerHTML=`
+    <h3>${ag?'✏️ Editar agenda':'➕ Nova agenda'}</h3>
+    <div class="form-group"><label>Nome do profissional *</label><input type="text" id="ag-nome" value="${ag?.nome||''}" placeholder="Nome"></div>
+    <div class="form-group"><label>Especialidade</label>
+      <select id="ag-esp">${ESPS.map(e=>`<option ${ag?.especialidade===e?'selected':''}>${e}</option>`).join('')}</select>
+    </div>
+    <div class="form-group"><label>Observação</label><textarea id="ag-obs">${ag?.obs||''}</textarea></div>
+    <div class="form-group"><label>Cor</label>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">${swatches}</div>
+      <input type="hidden" id="ag-cor" value="${ag?.cor||CORES[0]}">
+    </div>
+    <div class="form-group" style="margin-top:10px"><label>Horários ativos</label>
+      <div class="slots-editor">${slotRows}</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      ${ag?`<button class="btn btn-red" onclick="deleteAgenda(${ag.id})">Remover</button>`:''}
+      <button class="btn btn-blue" onclick="saveAgenda(${id||'null'})">Salvar</button>
+    </div>`
+  document.getElementById('modal-bg').classList.add('open')
+}
+
+function toggleSlot(s) {
+  const sid='st-'+s.replace(/[^a-z0-9]/gi,'_')
+  const btn=document.getElementById(sid)
+  const lbl=document.getElementById(sid+'-lbl')
+  const on=btn.classList.contains('on')
+  btn.classList.toggle('on',!on); btn.classList.toggle('off',on)
+  btn.textContent=on?'✗':'✓'
+  lbl.textContent=on?'Bloqueado':'Ativo'
+}
+
+function selCor(c) {
+  document.getElementById('ag-cor').value=c
+  document.querySelectorAll('.swatch').forEach(el=>el.classList.toggle('sel',el.style.background===c||el.style.backgroundColor===c))
+}
+
+function saveAgenda(id) {
+  const nome=document.getElementById('ag-nome').value.trim()
+  if (!nome) {alert('Digite o nome');return}
+  const cor=document.getElementById('ag-cor').value
+  const obs=document.getElementById('ag-obs').value.trim()
+  const especialidade=document.getElementById('ag-esp').value
+  const allSlots=[...new Set([...SLOTS_SEG_SEX,...SLOTS_SAB])]
+  const activeSlots=allSlots.filter(s=>{
+    const btn=document.getElementById('st-'+s.replace(/[^a-z0-9]/gi,'_'))
+    return btn?.classList.contains('on')
+  })
+  if (id) {
+    const i=agendas.findIndex(a=>a.id===id)
+    Object.assign(agendas[i],{nome,cor,obs,especialidade,activeSlots})
+  } else {
+    const slots={}
+    SLOTS_SEG_SEX.forEach(sl=>{slots[sl]=['','','','','','bloqueado']})
+    SLOTS_SAB.forEach(sl=>{if(!slots[sl])slots[sl]=['','','','','','bloqueado']})
+    slots['12h - 13h']=['almoco:ALMOÇO','almoco:ALMOÇO','almoco:ALMOÇO','almoco:ALMOÇO','almoco:ALMOÇO','bloqueado']
+    agendas.push({id:nextAgendaId++,nome,cor,obs,especialidade,activeSlots,slots})
+  }
+  saveData();closeModal();showPage('agendas')
+}
+
+function deleteAgenda(id) {
+  if (agendas.length<=1) {alert('Mantenha ao menos uma agenda.');return}
+  if (confirm('Remover esta agenda?')) {
+    agendas=agendas.filter(a=>a.id!==id)
+    if (currentAgendaId===id) currentAgendaId=agendas[0].id
+    saveData();closeModal();showPage('agendas')
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONFIGURAÇÕES
+// ═══════════════════════════════════════════════════════════
+function renderConfig() {
+  return `
+  <div class="cfg-stats">
+    <div class="cstat"><div class="num">${pacientes.length}</div><div class="lbl">Total de pacientes</div></div>
+    <div class="cstat"><div class="num">${pacientes.filter(p=>p.convenio==='Unimed').length}</div><div class="lbl">Unimed</div></div>
+    <div class="cstat"><div class="num">${pacientes.filter(p=>p.convenio==='Particular').length}</div><div class="lbl">Particular</div></div>
+    <div class="cstat"><div class="num">${pacientes.filter(p=>p.convenio==='Unimed Intercâmbio').length}</div><div class="lbl">Intercâmbio</div></div>
+  </div>
+  <div class="cfg-tab-bar">
+    <button class="cfg-tab active" onclick="switchCfgTab('pac',this)">👥 Pacientes</button>
+    <button class="cfg-tab" onclick="switchCfgTab('ags',this)">📅 Agendas</button>
+    <button class="cfg-tab" onclick="switchCfgTab('exp',this)">📤 Exportar</button>
+  </div>
+  <div class="cfg-pane active" id="cfgp-pac">
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+      <input type="text" id="cfg-q" style="flex:1;min-width:160px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px" placeholder="🔍 Buscar..." oninput="cfgQ=this.value;renderCfgTable()">
+      <select id="cfg-f" style="padding:7px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px" onchange="cfgF=this.value;renderCfgTable()">
+        <option value="">Todos os planos</option>
+        ${CONVS.map(c=>`<option value="${c}">${c}</option>`).join('')}
+      </select>
+      <button class="btn btn-outline btn-sm" onclick="cfgToggleAll()">☑ Sel. todos</button>
+      <button class="btn btn-red btn-sm" id="btn-bulk" style="display:none" onclick="cfgBulkDelete()">🗑 Excluir (<span id="sel-n">0</span>)</button>
+    </div>
+    <div class="bulk-bar" id="bulk-bar">
+      <span id="bulk-msg">0 selecionados</span>
+      <button class="btn btn-outline btn-sm" style="color:#fff;border-color:rgba(255,255,255,.4)" onclick="cfgClearSel()">✕ Limpar</button>
+      <button class="btn btn-red btn-sm" onclick="cfgBulkDelete()">🗑 Excluir selecionados</button>
+    </div>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
+      <table class="cfg-tbl">
+        <thead><tr>
+          <th><input type="checkbox" id="chk-all" onchange="cfgToggleAllChk(this.checked)"></th>
+          <th>Nome</th><th>Convênio</th><th>Nascimento</th><th>Guia vence</th><th>Ações</th>
+        </tr></thead>
+        <tbody id="cfg-tbody"></tbody>
+      </table>
+    </div>
+    <div id="cfg-info" style="font-size:11px;color:var(--muted);margin-top:6px"></div>
+  </div>
+  <div class="cfg-pane" id="cfgp-ags">
+    <div style="margin-bottom:10px"><button class="btn btn-blue" onclick="openAgendaModal(null)">+ Nova agenda</button></div>
+    ${agendas.map(a=>`<div class="agenda-card">
+      <div class="ag-color-dot" style="background:${a.cor||'#1b5e20'}"></div>
+      <div style="flex:1"><div style="font-size:12px;font-weight:600">${a.nome}</div><div style="font-size:11px;color:var(--muted)">${a.especialidade||''}</div></div>
+      <button class="btn btn-outline btn-sm" onclick="openAgendaModal(${a.id})">✏ Editar</button>
+      <button class="btn btn-red btn-sm" style="margin-left:4px" onclick="deleteAgenda(${a.id})">🗑</button>
+    </div>`).join('')}
+  </div>
+  <div class="cfg-pane" id="cfgp-exp">
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Exporte ou faça backup dos dados.</p>
+    <div class="exp-grid">
+      <div class="exp-card" onclick="expCSV()"><div class="exp-icon">📊</div><h4>CSV / Excel</h4><p>Lista de pacientes</p></div>
+      <div class="exp-card" onclick="expJSON()"><div class="exp-icon">📄</div><h4>JSON completo</h4><p>Backup total</p></div>
+      <div class="exp-card" onclick="expTXT()"><div class="exp-icon">📝</div><h4>Texto</h4><p>Relatório legível</p></div>
+      <div class="exp-card" onclick="printAg()"><div class="exp-icon">🖨️</div><h4>Imprimir agenda</h4><p>Agenda atual</p></div>
+    </div>
+  </div>`
+}
+
+function initCfg() {
+  cfgSel=new Set(); cfgQ=''; cfgF=''
+  renderCfgTable()
+}
+
+function switchCfgTab(name,btn) {
+  document.querySelectorAll('.cfg-tab').forEach(b=>b.classList.remove('active'))
+  document.querySelectorAll('.cfg-pane').forEach(p=>p.classList.remove('active'))
+  btn.classList.add('active')
+  document.getElementById('cfgp-'+name).classList.add('active')
+}
+
+function cfgGetList() {
+  return pacientes.filter(p=>{
+    const q=cfgQ.toLowerCase()
+    return (!q||(p.nome||'').toLowerCase().includes(q))&&(!cfgF||p.convenio===cfgF)
+  })
+}
+
+function renderCfgTable() {
+  const list=cfgGetList()
+  const tbody=document.getElementById('cfg-tbody')
+  if (!tbody) return
+  if (!list.length) {
+    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Nenhum paciente encontrado</td></tr>'
+  } else {
+    tbody.innerHTML=list.map(p=>{
+      const sel=cfgSel.has(p.id)
+      const nasc=p.nascimento?p.nascimento.split('-').reverse().join('/'):'—'
+      const vences=[]
+      if(p.guias) Object.values(p.guias).forEach(g=>{if(g?.venc)vences.push(g.venc)})
+      if(p.guiaVenc) vences.push(p.guiaVenc)
+      let guiaTxt='—', guiaSt=''
+      if(vences.length){
+        const earliest=vences.sort()[0]
+        const d=dias(earliest)
+        guiaTxt=earliest.split('-').reverse().join('/')
+        if(d!==null&&d<=30){
+          guiaSt=d<=7?'color:#c62828;font-weight:600':d<=15?'color:#e65100;font-weight:600':''
+          guiaTxt+= d<0?` ⚠️ vencida`:d===0?' ⚠️ HOJE':` ⚠️ ${d}d`
+        }
+      }
+      const convBg=p.convenio==='Particular'?'#1565c0':p.convenio==='Unimed Intercâmbio'?'#6a1b9a':'#1b5e20'
+      return `<tr class="${sel?'sel':''}" id="cr-${p.id}">
+        <td><input type="checkbox" ${sel?'checked':''} onchange="cfgToggle(${p.id},this.checked)"></td>
+        <td><strong>${p.nome}</strong></td>
+        <td><span style="font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;background:${convBg};color:#fff">${p.convenio||'—'}</span></td>
+        <td>${nasc}</td>
+        <td style="${guiaSt}">${guiaTxt}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-outline btn-sm" style="margin-right:4px" onclick="openPatModal(${p.id})">✏</button>
+          <button class="btn btn-red btn-sm" onclick="cfgDel(${p.id})">🗑</button>
+        </td>
+      </tr>`
+    }).join('')
+  }
+  document.getElementById('cfg-info').textContent=list.length+' paciente'+(list.length!==1?'s':'')+' encontrado'+(list.length!==1?'s':'')
+  cfgUpdateBulk()
+}
+
+function cfgToggle(id,checked){
+  if(checked)cfgSel.add(id);else cfgSel.delete(id)
+  document.getElementById('cr-'+id)?.classList.toggle('sel',checked)
+  cfgUpdateBulk()
+}
+function cfgToggleAllChk(checked){cfgGetList().forEach(p=>{if(checked)cfgSel.add(p.id);else cfgSel.delete(p.id)});renderCfgTable()}
+function cfgToggleAll(){const l=cfgGetList();if(cfgSel.size>=l.length)cfgSel.clear();else l.forEach(p=>cfgSel.add(p.id));renderCfgTable()}
+function cfgClearSel(){cfgSel.clear();renderCfgTable()}
+function cfgUpdateBulk(){
+  const n=cfgSel.size
+  document.getElementById('bulk-bar')?.classList.toggle('show',n>0)
+  const btn=document.getElementById('btn-bulk');if(btn)btn.style.display=n>0?'inline-flex':'none'
+  const sn=document.getElementById('sel-n');if(sn)sn.textContent=n
+  const msg=document.getElementById('bulk-msg');if(msg)msg.textContent=n+' paciente'+(n!==1?'s':'')+' selecionado'+(n!==1?'s':'')
+  const all=document.getElementById('chk-all')
+  const total=cfgGetList().length
+  if(all){all.indeterminate=n>0&&n<total;all.checked=n>0&&n>=total}
+}
+function cfgDel(id){
+  if(confirm('Remover este paciente? Esta ação não pode ser desfeita.')){
+    pacientes=pacientes.filter(x=>x.id!==id);cfgSel.delete(id)
+    saveData();showPage('config')
+  }
+}
+function cfgBulkDelete(){
+  const ids=[...cfgSel],n=ids.length
+  if(!n)return
+  if(confirm('Remover '+n+' paciente'+(n!==1?'s':'')+'? Esta ação não pode ser desfeita.')){
+    pacientes=pacientes.filter(p=>!ids.includes(p.id));cfgSel.clear()
+    saveData();showPage('config')
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// EXPORTAR
+// ═══════════════════════════════════════════════════════════
+function dlBlob(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
+function expCSV(){
+  const rows=[['Nome','Convênio','Cartão','Telefone','Responsável 1','Tel Resp.1','Responsável 2','Tel Resp.2','Parentesco','Nascimento','Laudo Venc','Obs']]
+  pacientes.forEach(p=>rows.push([p.nome,p.convenio||'',p.cartao||'',p.telefone||'',p.responsavel1||'',p.telResp1||'',p.responsavel2||'',p.telResp2||'',p.parentesco||'',p.nascimento||'',p.laudoVenc||'',p.obs||'']))
+  dlBlob(new Blob(['\uFEFF'+rows.map(r=>r.map(v=>'"'+(v||'').replace(/"/g,'""')+'"').join(',')).join('\n')],{type:'text/csv;charset=utf-8'}),'psicoteam_pacientes.csv')
+}
+function expJSON(){dlBlob(new Blob([JSON.stringify({agendas,pacientes},null,2)],{type:'application/json'}),'psicoteam_backup.json')}
+function expTXT(){
+  let t='PSICOTEAM — Pacientes\n'+'='.repeat(40)+'\n\n'
+  pacientes.forEach(p=>{
+    t+=p.nome+' | '+(p.convenio||'')
+    if(p.cartao) t+=' | Cartão: '+p.cartao
+    if(p.telefone) t+=' | Tel: '+p.telefone
+    if(p.responsavel1) t+='\n   Resp: '+p.responsavel1+(p.parentesco?' ('+p.parentesco+')':'')+(p.telResp1?' '+p.telResp1:'')
+    t+='\n'
+  })
+  dlBlob(new Blob([t],{type:'text/plain;charset=utf-8'}),'psicoteam.txt')
+}
+function printAg(){
+  const ag=getAg();if(!ag)return
+  const t=document.querySelector('#content table')
+  if(!t)return
+  const w=window.open('','_blank')
+  w.document.write(`<html><head><title>${ag.nome}</title><style>body{font-family:sans-serif;font-size:10px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:4px 3px;text-align:center}th{background:#006fa8;color:#fff}.hora-cell{background:#e0f4fb}.pac-unimed{background:#1b5e20;color:#fff}.pac-particular{background:#1565c0;color:#fff}.pac-intercambio{background:#a5d6a7}.pac-falta{background:#c62828;color:#fff}.almoco{background:#00bcd4}.reuniao{background:#7b1fa2;color:#fff}.bloqueado{background:#eee}
+/* EXECUÇÃO DE GUIAS */
+.exec-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.exec-date{padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit}
+.exec-dia-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px}
+.exec-dia-btn{padding:6px 14px;border:1px solid var(--border);border-radius:20px;background:#fff;font-size:12px;cursor:pointer;font-weight:500;transition:all .15s;color:var(--muted)}
+.exec-dia-btn:hover{border-color:#00a3e0;color:#00a3e0}
+.exec-dia-btn.active{background:#00a3e0;color:#fff;border-color:#00a3e0;font-weight:600}
+.exec-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:0;margin-bottom:8px;overflow:hidden;transition:all .15s}
+.exec-card.exec-ok{border-color:#a5d6a7;background:#f1f8e9}
+.exec-card.exec-falta{border-color:#ef9a9a;background:#fff8f8}
+.exec-header{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer}
+.exec-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.exec-pacname{font-size:13px;font-weight:600;color:var(--text)}
+.exec-meta{font-size:11px;color:var(--muted)}
+.exec-status-pill{margin-left:auto;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.exec-body{border-top:1px solid var(--border);padding:10px 14px;display:none}
+.exec-body.open{display:block}
+.exec-esp-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f0f0f0}
+.exec-esp-row:last-child{border-bottom:none}
+.exec-esp-label{flex:1;font-size:12px;font-weight:500;color:var(--text)}
+.exec-esp-prof{font-size:11px;color:var(--muted);min-width:120px}
+.exec-esp-slot{font-size:11px;color:var(--muted);min-width:80px}
+.exec-chk{width:20px;height:20px;cursor:pointer;accent-color:#2e7d32;flex-shrink:0}
+.exec-obs-inp{flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:11px;font-family:inherit;max-width:180px}
+.exec-summary{background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.exec-sum-card{text-align:center}
+.exec-sum-num{font-size:22px;font-weight:700}
+.exec-sum-lbl{font-size:11px;color:var(--muted)}
+.exec-rel-section{background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px}
+.exec-rel-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.exec-rel-table{width:100%;border-collapse:collapse;font-size:11px}
+.exec-rel-table th{background:#1a1a2e;color:#fff;padding:7px 10px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.exec-rel-table td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.exec-rel-table tr:last-child td{border-bottom:none}
+.exec-rel-table tr:hover td{background:#f9fafb}
+.pill-ok{background:#d1fae5;color:#065f46;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.pill-falta{background:#fee2e2;color:#991b1b;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.pill-pend{background:#fef9c3;color:#713f12;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+
+/* SUPERVISÃO — layout especial */
+.sup-section{margin-bottom:18px}
+.sup-section-title{background:linear-gradient(90deg,#1a237e,#283593);color:#fff;padding:8px 14px;border-radius:8px 8px 0 0;font-size:12px;font-weight:700;letter-spacing:.04em;display:flex;align-items:center;gap:8px}
+.sup-grid{background:#fff;border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;overflow:hidden}
+.sup-table{width:100%;border-collapse:collapse;font-size:12px}
+.sup-table th{background:#3949ab;color:#fff;padding:8px 12px;font-size:11px;font-weight:600;text-align:center;border:1px solid rgba(255,255,255,.15)}
+.sup-table td{border:1px solid #e8eaf6;padding:0;height:44px;vertical-align:middle;text-align:center;cursor:pointer;background:#fafafa;transition:background .15s}
+.sup-table td:hover{background:#e8eaf6}
+.sup-table td.sup-ocupado{background:#c5cae9;color:#1a237e;font-size:11px;font-weight:600;cursor:pointer}
+.sup-table td.sup-ocupado:hover{background:#9fa8da}
+.sup-table .dia-col{width:calc(100%/6)}
+
+/* MODO VISUALIZAÇÃO */
+body.view-mode .nav-btn:not(#nav-agenda):not(#nav-pacientes) { display:none }
+body.view-mode .topbar-actions .btn-blue,
+body.view-mode .topbar-actions .btn-green { display:none }
+body.view-mode #sidebar-agendas .ag-item { cursor:default }
+body.view-mode .view-badge {
+  display:inline-flex!important;
+  align-items:center;gap:5px;
+  background:#fff3cd;color:#856404;
+  font-size:11px;font-weight:600;
+  padding:4px 10px;border-radius:20px;
+  border:1px solid #ffc107;
+}
+.view-badge { display:none }
+body.view-mode td.vazio { cursor:default; pointer-events:none }
+body.view-mode td.pac-unimed,
+body.view-mode td.pac-particular,
+body.view-mode td.pac-intercambio,
+body.view-mode td.pac-falta { cursor:default; pointer-events:none }
+body.view-mode .sup-table td { cursor:default; pointer-events:none }
+
+/* LOGIN OVERLAY */
+.login-overlay {
+  position:fixed;inset:0;background:rgba(26,26,46,.92);
+  z-index:9999;display:flex;align-items:center;justify-content:center
+}
+.login-box {
+  background:#fff;border-radius:14px;padding:32px 28px;width:340px;
+  box-shadow:0 16px 48px rgba(0,0,0,.3);text-align:center
+}
+.login-box img { width:120px;margin-bottom:16px }
+.login-box h2 { font-size:16px;font-weight:700;margin-bottom:4px;color:#1a1a2e }
+.login-box p  { font-size:12px;color:#6b7280;margin-bottom:20px }
+.login-inp {
+  width:100%;padding:10px 14px;border:1.5px solid #d1d5db;
+  border-radius:8px;font-size:14px;font-family:inherit;
+  margin-bottom:10px;text-align:center;letter-spacing:3px
+}
+.login-inp:focus { outline:none;border-color:#00a3e0 }
+.login-err { color:#dc2626;font-size:12px;margin-bottom:8px;display:none }
+.login-links { display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap }
+.login-link  { font-size:11px;color:#6b7280;text-decoration:none;padding:4px 8px;border-radius:6px;border:1px solid #e5e7eb }
+.login-link:hover { background:#f9fafb }
+
+/* PRINT — AGENDA DO PACIENTE */
+@media print {
+  .print-pac-page { display:block!important }
+  body > *:not(.print-pac-page) { display:none!important }
+}
+.print-pac-page {
+  display:none;
+  font-family:Arial,sans-serif;
+  padding:24px;
+  background:#fff;
+}
+.print-pac-header {
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:3px solid #1b5e20;padding-bottom:12px;margin-bottom:16px
+}
+.print-pac-header img { height:60px }
+.print-pac-nome { font-size:18px;font-weight:700;color:#1a1a2e;text-align:right }
+.print-pac-subtitulo { font-size:12px;color:#666;text-align:right;margin-top:2px }
+.print-pac-table { width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px }
+.print-pac-table th { background:#1b5e20;color:#fff;padding:8px 12px;text-align:center;border:1px solid #999 }
+.print-pac-table th.hora { background:#005f80;width:90px }
+.print-pac-table td { border:1px solid #ccc;padding:8px 10px;text-align:center;height:36px }
+.print-pac-table td.hora-td { background:#e0f4fb;color:#005f80;font-weight:600;text-align:left }
+.print-pac-table td.sessao { font-weight:600;font-size:12px }
+.print-pac-table td.sessao.verde  { background:#1b5e20;color:#fff }
+.print-pac-table td.sessao.azul   { background:#1565c0;color:#fff }
+.print-pac-table td.sessao.rosa   { background:#e91e8c;color:#fff }
+.print-pac-table td.sessao.vazio  { background:#fff }
+.print-pac-footer { font-size:10px;color:#999;text-align:center;margin-top:8px }
+
+/* SUP SLOT CARDS */
+.sup-slot-empty{border:2px dashed #c5cae9;border-radius:8px;padding:14px;text-align:center;cursor:pointer;color:#9fa8da;font-size:12px;transition:all .15s}
+.sup-slot-empty:hover{border-color:#3f51b5;color:#3f51b5}
+.sup-slot-filled{border-radius:8px;overflow:hidden;cursor:pointer}
+</style></head><body><h2>${ag.nome}</h2>${t.outerHTML}</body></html>`)
+  w.document.close();w.print()
+}
+
+// ═══════════════════════════════════════════════════════════
+// SHOW PAGE
+// ═══════════════════════════════════════════════════════════
+let currentPage = 'agenda'
+function showPage(page) {
+  currentPage = page
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'))
+  document.getElementById('nav-'+page)?.classList.add('active')
+  const ag=getAg()
+  const titles={agenda:ag?.nome||'Agenda',pacientes:'Pacientes',agendas:'Gerenciar agendas',config:'Configurações',execucao:'Execução de Guias'}
+  document.getElementById('page-title').textContent=titles[page]||''
+  const acts=document.getElementById('topbar-actions')
+  const content=document.getElementById('content')
+
+  // Update admin/view button in sidebar
+  const adminArea = document.getElementById('admin-btn-area')
+  if (adminArea) {
+    adminArea.innerHTML = isAdmin
+      ? `<button class="btn btn-outline" style="width:100%;font-size:11px;margin-top:4px;color:rgba(255,255,255,.7);border-color:rgba(255,255,255,.2)" onclick="logout()">🔒 Sair do modo admin</button>`
+      : `<button class="btn btn-outline" style="width:100%;font-size:11px;margin-top:4px;color:rgba(255,255,255,.7);border-color:rgba(255,255,255,.2)" onclick="showLoginModal()">🔑 Entrar como admin</button>`
+  }
+
+  if(page==='agenda'){
+    acts.innerHTML = isAdmin
+      ? `<button class="btn btn-outline" onclick="openNewCellModal()">+ Agendar</button>
+         <button class="btn btn-green" onclick="printAg()">🖨 Imprimir</button>`
+      : `<button class="btn btn-green" onclick="printAg()">🖨 Imprimir</button>`
+    content.innerHTML=renderAgenda()
+  } else if(page==='pacientes'){
+    acts.innerHTML=`<button class="btn btn-blue" onclick="openPatModal(null)">+ Novo paciente</button>`
+    content.innerHTML=renderPacientes()
+  } else if(page==='agendas'){
+    acts.innerHTML=`<button class="btn btn-blue" onclick="openAgendaModal(null)">+ Nova agenda</button>`
+    content.innerHTML=agendas.map(a=>`<div class="agenda-card">
+      <div class="ag-color-dot" style="background:${a.cor||'#1b5e20'}"></div>
+      <span style="flex:1;font-size:13px;font-weight:500">${a.nome}</span>
+      <button class="btn btn-outline btn-sm" onclick="openAgendaModal(${a.id})">Editar</button>
+      <button class="btn btn-red btn-sm" style="margin-left:4px" onclick="deleteAgenda(${a.id})">Remover</button>
+    </div>`).join('')
+  } else if(page==='config'){
+    acts.innerHTML=`<button class="btn btn-blue" onclick="openPatModal(null)">+ Novo paciente</button>
+      <button class="btn btn-outline" onclick="expCSV()">⬇ CSV</button>`
+    content.innerHTML=renderConfig()
+    initCfg()
+  } else if(page==='execucao'){
+    acts.innerHTML=`<button class="btn btn-green" onclick="imprimirExecucao()">🖨 Relatório</button>
+      <button class="btn btn-outline" onclick="expExecucaoCSV()">⬇ Exportar CSV</button>`
+    content.innerHTML=renderExecucao()
+  }
+  renderSidebar()
+}
+
+// ═══════════════════════════════════════════════════════════
+// EXECUÇÃO DE GUIAS
+// ═══════════════════════════════════════════════════════════
+const DIAS_NOMES = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado']
+const DIAS_IDX   = {Segunda:0,Terça:1,Quarta:2,Quinta:3,Sexta:4,Sábado:5}
+const ESP_ICONS  = {Fonoaudiologia:'🗣',Psicologia:'🧠',Psicopedagogia:'📚',Psicomotricidade:'🤸','Terapia Ocupacional':'🖐',Neuropsicologia:'🔬',Outro:'📋'}
+
+let execDia = 'Segunda'
+let execData = new Date().toISOString().slice(0,10)
+
+// Detecta dia da semana baseado na data selecionada
+function diaDaSemana(dataStr) {
+  if (!dataStr) return 'Segunda'
+  const d = new Date(dataStr + 'T12:00:00')
+  const idx = d.getDay() // 0=Dom,1=Seg,...,6=Sab
+  const map = [null,'Segunda','Terça','Quarta','Quinta','Sexta','Sábado']
+  return map[idx] || 'Segunda'
+}
+
+// Retorna todos os pacientes agendados em um dia da semana, com a especialidade do profissional
+function getPacientesDoDia(diaNome) {
+  const di = DIAS_IDX[diaNome]
+  if (di === undefined) return []
+  const result = []
+
+  agendas.forEach(ag => {
+    const esp = ag.especialidade || 'Outro'
+    Object.entries(ag.slots || {}).forEach(([slot, dias]) => {
+      const val = dias[di]
+      if (!val || val === 'bloqueado' || val.startsWith('almoco:') || val.startsWith('reuniao:')) return
+      const parts = val.split('|')
+      const nome = (parts[0]||'').trim()
+      const conv = parts[1]||'Unimed'
+      const falta = parts.includes('falta')
+      if (!nome || falta) return
+      // Use safe unique key based on ag.id + slot (avoid special chars in names breaking HTML)
+      const safeKey = ag.id + '_' + slot.replace(/[^0-9]/g,'') + '_' + di
+      const key = nome+'|'+ag.id+'|'+slot
+      if (!result.find(r => r._key === key)) {
+        result.push({
+          _key:        key,
+          execKey:     safeKey,
+          execLabel:   nome + ' | ' + esp,
+          nome,
+          convenio:    conv,
+          horario:     slot,
+          profissional: ag.nome,
+          especialidade: esp,
+          agendaId:    ag.id,
+          agendaNome:  ag.nome,
+          cor:         ag.cor || '#1b5e20'
+        })
+      }
+    })
+  })
+
+  result.sort((a,b) => {
+    const ha = parseInt(a.horario), hb = parseInt(b.horario)
+    if (ha !== hb) return ha - hb
+    return a.nome.localeCompare(b.nome)
+  })
+  return result
+}
+
+// Group by patient name
+function agruparPorPaciente(items) {
+  const map = {}
+  items.forEach(item => {
+    if (!map[item.nome]) map[item.nome] = { nome:item.nome, convenio:item.convenio, sessoes:[] }
+    map[item.nome].sessoes.push(item)
+  })
+  return Object.values(map).sort((a,b) => a.nome.localeCompare(b.nome))
+}
+
+function getExecKey(data, execKey) { return (execucoes[data] || {})[execKey] || {feito:false,obs:''} }
+function setExecKey(data, execKey, feito, obs) {
+  if (!execucoes[data]) execucoes[data] = {}
+  execucoes[data][execKey] = {feito, obs}
+  saveData()
+}
+
+function renderExecucao() {
+  const items = getPacientesDoDia(execDia)
+  const grupos = agruparPorPaciente(items)
+
+  // Summary counts
+  let total=0, feitos=0, faltas=0
+  grupos.forEach(g => g.sessoes.forEach(s => {
+    total++
+    const ex = getExecKey(execData, s.execKey)
+    if (ex.feito) feitos++
+  }))
+  const pendentes = total - feitos
+
+  // Progress bar %
+  const pct = total ? Math.round(feitos/total*100) : 0
+
+  let html = `
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <div>
+      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px">📅 Data</label>
+      <input type="date" class="exec-date" id="exec-date-inp" value="${execData}" onchange="execChangeData(this.value)">
+    </div>
+    <div style="flex:1">
+      <div class="exec-dia-tabs">
+        ${DIAS_NOMES.map(d=>`<button class="exec-dia-btn${d===execDia?' active':''}" onclick="execChangeDia('${d}')">${d}</button>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="exec-summary">
+    <div class="exec-sum-card">
+      <div class="exec-sum-num" style="color:#00a3e0">${total}</div>
+      <div class="exec-sum-lbl">Sessões programadas</div>
+    </div>
+    <div class="exec-sum-card">
+      <div class="exec-sum-num" style="color:#2e7d32">${feitos}</div>
+      <div class="exec-sum-lbl">Executadas ✅</div>
+    </div>
+    <div class="exec-sum-card">
+      <div class="exec-sum-num" style="color:#e65100">${pendentes}</div>
+      <div class="exec-sum-lbl">Pendentes ⏳</div>
+    </div>
+    <div class="exec-sum-card">
+      <div class="exec-sum-num" style="color:#6b7280">${pct}%</div>
+      <div class="exec-sum-lbl">Concluído</div>
+    </div>
+  </div>
+  <div style="background:#e9ecef;border-radius:10px;height:8px;margin-bottom:14px;overflow:hidden">
+    <div class="exec-progress-bar" style="background:linear-gradient(90deg,#2e7d32,#66bb6a);height:100%;width:${pct}%;border-radius:10px;transition:width .4s"></div>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+    <div style="font-size:12px;font-weight:600;color:var(--text)">${grupos.length} paciente${grupos.length!==1?'s':''} em ${execDia} (${execData.split('-').reverse().join('/')})</div>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-green btn-sm" onclick="marcarTodos(true)">✅ Marcar todos</button>
+      <button class="btn btn-outline btn-sm" onclick="marcarTodos(false)">↩ Desmarcar todos</button>
+    </div>
+  </div>`
+
+  if (!grupos.length) {
+    html += `<div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:32px;text-align:center;color:var(--muted);font-size:13px">
+      Nenhum paciente agendado em ${execDia}
+    </div>`
+    return html
+  }
+
+  grupos.forEach(g => {
+    const feitosTodos = g.sessoes.every(s => getExecKey(execData, s.execKey).feito)
+    const algumFeito  = g.sessoes.some(s => getExecKey(execData, s.execKey).feito)
+    const statusCls   = feitosTodos ? 'exec-ok' : ''
+    const statusTxt   = feitosTodos ? '✅ Concluído' : algumFeito ? '⏳ Parcial' : '⏳ Pendente'
+    const statusColor = feitosTodos ? 'background:#d1fae5;color:#065f46' : algumFeito ? 'background:#fef9c3;color:#713f12' : 'background:#f3f4f6;color:var(--muted)'
+    const ini = g.nome.split(' ').slice(0,2).map(x=>x[0]||'').join('').toUpperCase()
+    const convColor = g.convenio==='Particular'?'#1565c0':g.convenio==='Unimed Intercâmbio'?'#6a1b9a':'#1b5e20'
+    const cardId = 'card-' + g.nome.replace(/[^a-z0-9]/gi,'_')
+
+    html += `<div class="exec-card ${statusCls}" id="${cardId}">
+      <div class="exec-header" onclick="toggleExecCard('${cardId}')">
+        <div class="exec-avatar" style="background:${convColor}22;color:${convColor}">${ini}</div>
+        <div>
+          <div class="exec-pacname">${g.nome}</div>
+          <div class="exec-meta">${g.convenio} · ${g.sessoes.length} especialidade${g.sessoes.length!==1?'s':''}</div>
+        </div>
+        <span class="exec-status-pill" style="${statusColor}">${statusTxt}</span>
+        <span style="color:var(--muted);font-size:12px;margin-left:6px">▼</span>
+      </div>
+      <div class="exec-body" id="body-${cardId}">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid var(--border)">
+          <span style="flex:1;display:inline-block">Especialidade / Profissional</span>
+          <span style="display:inline-block;width:80px;text-align:center">Horário</span>
+          <span style="display:inline-block;width:80px;text-align:center">Executada?</span>
+          <span style="display:inline-block;width:180px;text-align:left;padding-left:10px">Observação</span>
+        </div>
+        ${g.sessoes.map(s => {
+          const ex = getExecKey(execData, s.execKey)
+          const eid = 'ex-'+s.execKey
+          return `<div class="exec-esp-row" id="row-${eid}">
+            <div class="exec-esp-label">${ESP_ICONS[s.especialidade]||'📋'} ${s.especialidade}</div>
+            <div class="exec-esp-prof" style="font-size:11px;color:var(--muted);min-width:130px">${s.profissional.replace(/.*- /,'')}</div>
+            <div class="exec-esp-slot" style="font-size:11px;color:var(--muted);min-width:80px">${s.horario}</div>
+            <input type="checkbox" class="exec-chk" id="chk-${eid}" ${ex.feito?'checked':''}
+              data-ekey="${s.execKey}" data-date="${execData}"
+              onchange="toggleExecEl(this)">
+            <input type="text" class="exec-obs-inp" id="obs-${eid}" value="${ex.obs||''}" placeholder="Observação..."
+              data-ekey="${s.execKey}" data-date="${execData}"
+              onchange="saveObsEl(this)">
+          </div>`
+        }).join('')}
+      </div>
+    </div>`
+  })
+
+  return html
+}
+
+function execChangeData(val) {
+  execData = val
+  execDia  = diaDaSemana(val)
+  document.getElementById('content').innerHTML = renderExecucao()
+}
+
+function execChangeDia(dia) {
+  execDia = dia
+  document.getElementById('content').innerHTML = renderExecucao()
+}
+
+function toggleExecCard(cardId) {
+  const body = document.getElementById('body-'+cardId)
+  body.classList.toggle('open')
+}
+
+function toggleExecEl(chkEl) {
+  const execKey = chkEl.dataset.ekey
+  const data    = chkEl.dataset.date
+  const eid     = 'ex-'+execKey
+  const obs     = document.getElementById('obs-'+eid)?.value || ''
+  setExecKey(data, execKey, chkEl.checked, obs)
+  updateCardStatus(chkEl.closest('.exec-card'))
+  updateExecSummary()
+}
+
+function saveObsEl(inp) {
+  const execKey = inp.dataset.ekey
+  const data    = inp.dataset.date
+  const eid     = 'ex-'+execKey
+  const chk     = document.getElementById('chk-'+eid)
+  setExecKey(data, execKey, chk?.checked||false, inp.value)
+}
+
+function updateCardStatus(card) {
+  if (!card) return
+  const chks = card.querySelectorAll('.exec-chk')
+  const allDone = [...chks].every(c=>c.checked)
+  const anyDone = [...chks].some(c=>c.checked)
+  card.className = 'exec-card ' + (allDone?'exec-ok':'')
+  const pill = card.querySelector('.exec-status-pill')
+  if (pill) {
+    pill.textContent = allDone?'✅ Concluído':anyDone?'⏳ Parcial':'⏳ Pendente'
+    pill.style.cssText = allDone?'background:#d1fae5;color:#065f46':anyDone?'background:#fef9c3;color:#713f12':'background:#f3f4f6;color:var(--muted);margin-left:auto'
+  }
+}
+
+function updateExecSummary() {
+  const items = getPacientesDoDia(execDia)
+  let total=0, feitos=0
+  items.forEach(s => { total++; if(getExecKey(execData,s.execKey).feito) feitos++ })
+  const pct = total ? Math.round(feitos/total*100) : 0
+  const bar = document.querySelector('.exec-progress-bar')
+  if(bar) bar.style.width = pct+'%'
+  const nums = document.querySelectorAll('.exec-sum-num')
+  if(nums.length>=4){ nums[1].textContent=feitos; nums[2].textContent=total-feitos; nums[3].textContent=pct+'%' }
+}
+
+function saveObs(data, execKey, eid, obs) {
+  const chk = document.getElementById('chk-'+eid)
+  setExecKey(data, execKey, chk?.checked||false, obs)
+}
+
+function marcarTodos(feito) {
+  const items = getPacientesDoDia(execDia)
+  items.forEach(s => {
+    const old = getExecKey(execData, s.execKey)
+    setExecKey(execData, s.execKey, feito, old.obs)
+  })
+  document.getElementById('content').innerHTML = renderExecucao()
+  document.querySelectorAll('.exec-body').forEach(b=>b.classList.add('open'))
+}
+
+// ─── RELATÓRIO EXECUÇÃO ───────────────────────────────────────────────────────
+function gerarRelatorio(dataStr) {
+  const items = getPacientesDoDia(diaDaSemana(dataStr))
+  const grupos = agruparPorPaciente(items)
+  let feitos=0, pendentes=0, total=0
+
+  let rows = ''
+  grupos.forEach(g => {
+    g.sessoes.forEach(s => {
+      total++
+      const ex = getExecKey(dataStr, s.execKey)
+      const ok = ex.feito
+      if(ok) feitos++; else pendentes++
+      rows += `<tr>
+        <td>${g.nome}</td>
+        <td>${g.convenio}</td>
+        <td>${ESP_ICONS[s.especialidade]||''} ${s.especialidade}</td>
+        <td>${s.profissional.split(' - ')[0]}</td>
+        <td>${s.horario}</td>
+        <td><span class="${ok?'pill-ok':'pill-pend'}">${ok?'✅ Executada':'⏳ Pendente'}</span></td>
+        <td>${ex.obs||'—'}</td>
+      </tr>`
+    })
+  })
+
+  return {feitos, pendentes, total, rows, grupos}
+}
+
+function imprimirExecucao() {
+  const {feitos,pendentes,total,rows} = gerarRelatorio(execData)
+  const w = window.open('','_blank')
+  w.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+  <title>Relatório de Execução — ${execDia} ${execData.split('-').reverse().join('/')}</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:20px}
+    h1{font-size:16px;margin-bottom:4px}
+    .sub{color:#555;font-size:12px;margin-bottom:16px}
+    .stats{display:flex;gap:20px;margin-bottom:16px}
+    .stat{background:#f5f5f5;border-radius:6px;padding:10px 16px;text-align:center}
+    .stat b{display:block;font-size:20px}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th{background:#1a1a2e;color:#fff;padding:7px 8px;text-align:left;font-size:10px}
+    td{padding:6px 8px;border-bottom:1px solid #ddd}
+    tr:nth-child(even) td{background:#f9f9f9}
+    .ok{color:#2e7d32;font-weight:600}.pend{color:#c45c00;font-weight:600}
+    @media print{body{padding:0}}
+  
+/* SUPERVISÃO — layout especial */
+.sup-section{margin-bottom:18px}
+.sup-section-title{background:linear-gradient(90deg,#1a237e,#283593);color:#fff;padding:8px 14px;border-radius:8px 8px 0 0;font-size:12px;font-weight:700;letter-spacing:.04em;display:flex;align-items:center;gap:8px}
+.sup-grid{background:#fff;border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;overflow:hidden}
+.sup-table{width:100%;border-collapse:collapse;font-size:12px}
+.sup-table th{background:#3949ab;color:#fff;padding:8px 12px;font-size:11px;font-weight:600;text-align:center;border:1px solid rgba(255,255,255,.15)}
+.sup-table td{border:1px solid #e8eaf6;padding:0;height:44px;vertical-align:middle;text-align:center;cursor:pointer;background:#fafafa;transition:background .15s}
+.sup-table td:hover{background:#e8eaf6}
+.sup-table td.sup-ocupado{background:#c5cae9;color:#1a237e;font-size:11px;font-weight:600;cursor:pointer}
+.sup-table td.sup-ocupado:hover{background:#9fa8da}
+.sup-table .dia-col{width:calc(100%/6)}
+
+/* MODO VISUALIZAÇÃO */
+body.view-mode .nav-btn:not(#nav-agenda):not(#nav-pacientes) { display:none }
+body.view-mode .topbar-actions .btn-blue,
+body.view-mode .topbar-actions .btn-green { display:none }
+body.view-mode #sidebar-agendas .ag-item { cursor:default }
+body.view-mode .view-badge {
+  display:inline-flex!important;
+  align-items:center;gap:5px;
+  background:#fff3cd;color:#856404;
+  font-size:11px;font-weight:600;
+  padding:4px 10px;border-radius:20px;
+  border:1px solid #ffc107;
+}
+.view-badge { display:none }
+body.view-mode td.vazio { cursor:default; pointer-events:none }
+body.view-mode td.pac-unimed,
+body.view-mode td.pac-particular,
+body.view-mode td.pac-intercambio,
+body.view-mode td.pac-falta { cursor:default; pointer-events:none }
+body.view-mode .sup-table td { cursor:default; pointer-events:none }
+
+/* LOGIN OVERLAY */
+.login-overlay {
+  position:fixed;inset:0;background:rgba(26,26,46,.92);
+  z-index:9999;display:flex;align-items:center;justify-content:center
+}
+.login-box {
+  background:#fff;border-radius:14px;padding:32px 28px;width:340px;
+  box-shadow:0 16px 48px rgba(0,0,0,.3);text-align:center
+}
+.login-box img { width:120px;margin-bottom:16px }
+.login-box h2 { font-size:16px;font-weight:700;margin-bottom:4px;color:#1a1a2e }
+.login-box p  { font-size:12px;color:#6b7280;margin-bottom:20px }
+.login-inp {
+  width:100%;padding:10px 14px;border:1.5px solid #d1d5db;
+  border-radius:8px;font-size:14px;font-family:inherit;
+  margin-bottom:10px;text-align:center;letter-spacing:3px
+}
+.login-inp:focus { outline:none;border-color:#00a3e0 }
+.login-err { color:#dc2626;font-size:12px;margin-bottom:8px;display:none }
+.login-links { display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap }
+.login-link  { font-size:11px;color:#6b7280;text-decoration:none;padding:4px 8px;border-radius:6px;border:1px solid #e5e7eb }
+.login-link:hover { background:#f9fafb }
+
+/* PRINT — AGENDA DO PACIENTE */
+@media print {
+  .print-pac-page { display:block!important }
+  body > *:not(.print-pac-page) { display:none!important }
+}
+.print-pac-page {
+  display:none;
+  font-family:Arial,sans-serif;
+  padding:24px;
+  background:#fff;
+}
+.print-pac-header {
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:3px solid #1b5e20;padding-bottom:12px;margin-bottom:16px
+}
+.print-pac-header img { height:60px }
+.print-pac-nome { font-size:18px;font-weight:700;color:#1a1a2e;text-align:right }
+.print-pac-subtitulo { font-size:12px;color:#666;text-align:right;margin-top:2px }
+.print-pac-table { width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px }
+.print-pac-table th { background:#1b5e20;color:#fff;padding:8px 12px;text-align:center;border:1px solid #999 }
+.print-pac-table th.hora { background:#005f80;width:90px }
+.print-pac-table td { border:1px solid #ccc;padding:8px 10px;text-align:center;height:36px }
+.print-pac-table td.hora-td { background:#e0f4fb;color:#005f80;font-weight:600;text-align:left }
+.print-pac-table td.sessao { font-weight:600;font-size:12px }
+.print-pac-table td.sessao.verde  { background:#1b5e20;color:#fff }
+.print-pac-table td.sessao.azul   { background:#1565c0;color:#fff }
+.print-pac-table td.sessao.rosa   { background:#e91e8c;color:#fff }
+.print-pac-table td.sessao.vazio  { background:#fff }
+.print-pac-footer { font-size:10px;color:#999;text-align:center;margin-top:8px }
+
+/* SUP SLOT CARDS */
+.sup-slot-empty{border:2px dashed #c5cae9;border-radius:8px;padding:14px;text-align:center;cursor:pointer;color:#9fa8da;font-size:12px;transition:all .15s}
+.sup-slot-empty:hover{border-color:#3f51b5;color:#3f51b5}
+.sup-slot-filled{border-radius:8px;overflow:hidden;cursor:pointer}
+</style></head><body>
+  <h1>📋 Relatório de Execução de Guias — PsicoTEAM</h1>
+  <div class="sub">${execDia}, ${execData.split('-').reverse().join('/')} · Gerado em ${new Date().toLocaleString('pt-BR')}</div>
+  <div class="stats">
+    <div class="stat"><b style="color:#00a3e0">${total}</b>Programadas</div>
+    <div class="stat"><b style="color:#2e7d32">${feitos}</b>Executadas</div>
+    <div class="stat"><b style="color:#c45c00">${pendentes}</b>Pendentes</div>
+    <div class="stat"><b style="color:#555">${total?Math.round(feitos/total*100):0}%</b>Concluído</div>
+  </div>
+  <table>
+    <thead><tr><th>Paciente</th><th>Convênio</th><th>Especialidade</th><th>Profissional</th><th>Horário</th><th>Status</th><th>Observação</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  </body></html>`)
+  w.document.close(); w.print()
+}
+
+function expExecucaoCSV() {
+  const {grupos} = gerarRelatorio(execData)
+  const rows = [['Data','Dia','Paciente','Convênio','Especialidade','Profissional','Horário','Executada','Observação']]
+  getPacientesDoDia(execDia).forEach(s => {
+    const ex = getExecKey(execData, s.execKey)
+    rows.push([execData, execDia, s.nome, s.convenio, s.especialidade, s.profissional, s.horario, ex.feito?'Sim':'Não', ex.obs||''])
+  })
+  const csv = rows.map(r=>r.map(v=>'"'+(v||'').replace(/"/g,'""')+'"').join(',')).join('\n')
+  dlBlob(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}), 'execucao_'+execData+'.csv')
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// MODO ADMIN vs VISUALIZAÇÃO
+// ═══════════════════════════════════════════════════════════
+const ADMIN_SENHA = 'psico2026'  // ← mude aqui para sua senha
+let isAdmin = false
+
+function checkMode() {
+  // URL ?admin=SENHA → entra em modo admin
+  const params = new URLSearchParams(window.location.search)
+  const senhaUrl = params.get('admin')
+  if (senhaUrl === ADMIN_SENHA) {
+    isAdmin = true
+    sessionStorage.setItem('psico_admin', ADMIN_SENHA)
+    // Limpa o ?admin da URL sem recarregar
+    window.history.replaceState({}, '', window.location.pathname)
+    return
+  }
+  // Sessão já autenticada
+  if (sessionStorage.getItem('psico_admin') === ADMIN_SENHA) {
+    isAdmin = true
+    return
+  }
+  // Modo visualização
+  isAdmin = false
+  document.body.classList.add('view-mode')
+}
+
+function showLoginModal() {
+  const div = document.createElement('div')
+  div.className = 'login-overlay'
+  div.id = 'login-overlay'
+  div.innerHTML = `
+    <div class="login-box">
+      <img src="/Logomarca_PsicoTEAM_1_.png" onerror="this.style.display='none'" alt="PsicoTEAM">
+      <h2>Área Administrativa</h2>
+      <p>Digite a senha para acessar o modo de edição</p>
+      <input class="login-inp" type="password" id="login-inp" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter')doLogin()">
+      <div class="login-err" id="login-err">Senha incorreta</div>
+      <button class="btn btn-blue" style="width:100%;padding:10px" onclick="doLogin()">Entrar</button>
+      <div class="login-links">
+        <a href="#" class="login-link" onclick="closeLoginModal()">Continuar como visualizador</a>
+      </div>
+    </div>`
+  document.body.appendChild(div)
+  setTimeout(() => document.getElementById('login-inp')?.focus(), 100)
+}
+
+function doLogin() {
+  const val = document.getElementById('login-inp')?.value
+  if (val === ADMIN_SENHA) {
+    isAdmin = true
+    sessionStorage.setItem('psico_admin', ADMIN_SENHA)
+    document.body.classList.remove('view-mode')
+    document.getElementById('login-overlay')?.remove()
+    showPage(currentPage)
+  } else {
+    const err = document.getElementById('login-err')
+    if (err) { err.style.display='block'; setTimeout(()=>err.style.display='none',2500) }
+  }
+}
+
+function closeLoginModal() {
+  document.getElementById('login-overlay')?.remove()
+}
+
+function logout() {
+  sessionStorage.removeItem('psico_admin')
+  isAdmin = false
+  document.body.classList.add('view-mode')
+  showPage('agenda')
+}
+
+// ═══════════════════════════════════════════════════════════
+// IMPRIMIR AGENDA DO PACIENTE
+// ═══════════════════════════════════════════════════════════
+function imprimirPacId(id) {
+  var p = pacientes.find(function(x){ return x.id===id })
+  if (p) imprimirAgendaPaciente(p.nome)
+}
+
+function imprimirAgendaPaciente(nomePac) {
+  // Busca todas as sessões do paciente em todas as agendas
+  const sessoes = []  // {dia, horario, especialidade, profissional, cor}
+
+  agendas.forEach(ag => {
+    Object.entries(ag.slots || {}).forEach(([slot, dias]) => {
+      dias.forEach((val, di) => {
+        if (!val || val === 'bloqueado' || val.startsWith('almoco:') || val.startsWith('reuniao:')) return
+        const parts = val.split('|')
+        const nome = (parts[0]||'').trim()
+        if (nome.toLowerCase() === nomePac.toLowerCase()) {
+          sessoes.push({
+            dia: di,
+            diaNome: DIAS[di],
+            horario: slot,
+            especialidade: ag.especialidade || 'Outro',
+            profissional: ag.nome,
+            convenio: parts[1]||'Unimed'
+          })
+        }
+      })
+    })
+  })
+
+  if (!sessoes.length) { alert('Paciente não encontrado nas agendas'); return }
+
+  // Descobre dias e horários únicos
+  const diasUsados = [...new Set(sessoes.map(s=>s.dia))].sort((a,b)=>a-b)
+  const horariosUsados = [...new Set(sessoes.map(s=>s.horario))].sort((a,b)=>parseInt(a)-parseInt(b))
+
+  // Pega dados do paciente
+  const pac = pacientes.find(p=>p.nome.toLowerCase()===nomePac.toLowerCase())
+  const convenio = pac?.convenio || sessoes[0]?.convenio || 'Unimed'
+
+  // Cores por especialidade
+  const espCor = {
+    'Fonoaudiologia': 'verde',
+    'Psicomotricidade': 'verde',
+    'Psicopedagogia': 'verde',
+    'Terapia Ocupacional': 'verde',
+    'Supervisão': 'rosa',
+    'Acompanhamento Terapêutico': 'verde',
+    'Psicologia': 'azul',
+    'Neuropsicologia': 'azul'
+  }
+
+  // Build table header
+  let thDias = diasUsados.map(di=>`<th>${DIAS[di]}</th>`).join('')
+
+  // Build rows
+  let rows = ''
+  horariosUsados.forEach(slot => {
+    let tds = diasUsados.map(di => {
+      const s = sessoes.find(x=>x.dia===di && x.horario===slot)
+      if (!s) return '<td class="sessao vazio"></td>'
+      const cor = espCor[s.especialidade] || 'verde'
+      const profNome = s.profissional.replace(/.*- /,'').replace(/Pacientes - /,'')
+      return `<td class="sessao ${cor}">${s.especialidade}<br><span style="font-size:10px;font-weight:400">${profNome}</span></td>`
+    }).join('')
+    rows += `<tr><td class="hora-td">${slot}</td>${tds}</tr>`
+  })
+
+  // Supervision row if exists
+  const sups = sessoes.filter(s=>s.especialidade==='Supervisão')
+  if (sups.length) {
+    let supTds = diasUsados.map(di => {
+      const s = sups.find(x=>x.dia===di)
+      if (!s) return '<td class="sessao vazio"></td>'
+      const profNome = s.profissional.replace(/Pacientes - Supervisora /,'Psicologa Supervisora - ')
+      return `<td class="sessao rosa">${profNome}</td>`
+    }).join('')
+    rows += `<tr><td class="hora-td" style="background:#fce4ec;color:#880e4f">Supervisão</td>${supTds}</tr>`
+  }
+
+  const logoPath = '/Logomarca_PsicoTEAM_1_.png'
+  const dataHoje = new Date().toLocaleDateString('pt-BR', {month:'long',year:'numeric'})
+
+  const pacData = pacientes.find(p=>p.nome.toLowerCase()===nomePac.toLowerCase())
+  const resp1 = pacData?.responsavel1||''
+  const telR1 = pacData?.telResp1||''
+  const cartaoNum = pacData?.cartao||''
+  const parent = pacData?.parentesco||''
+
+  const w = window.open('','_blank','width=800,height=600')
+  w.document.write(`<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8">
+<title>Agenda — ${nomePac}</title>
+<style>
+  body{font-family:Arial,sans-serif;padding:20px;background:#fff;color:#111}
+  .header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #1b5e20;padding-bottom:12px;margin-bottom:16px}
+  .header img{height:65px}
+  .pac-info{text-align:right}
+  .pac-info h1{font-size:17px;font-weight:700;color:#1a1a2e;margin-bottom:2px}
+  .pac-info p{font-size:11px;color:#666}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:#1b5e20;color:#fff;padding:9px 12px;text-align:center;border:1px solid #999;font-size:12px}
+  th.hora{background:#005f80;width:90px;text-align:left}
+  td{border:1px solid #ccc;padding:8px 10px;text-align:center;height:38px}
+  td.hora-td{background:#e0f4fb;color:#005f80;font-weight:600;text-align:left;font-size:12px}
+  td.verde{background:#1b5e20;color:#fff;font-weight:600}
+  td.azul{background:#1565c0;color:#fff;font-weight:600}
+  td.rosa{background:#e91e8c;color:#fff;font-weight:600}
+  td.vazio{background:#fff}
+  .footer{margin-top:14px;font-size:10px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:8px}
+  .diasem-row td{background:#f5f5f5;font-weight:600;font-size:11px;text-align:center;padding:5px;border:1px solid #ccc}
+  .diasem-row td.hora-td{background:#e0f4fb}
+  @media print{@page{margin:15mm}body{padding:0}}
+
+/* SUP SLOT CARDS */
+.sup-slot-empty{border:2px dashed #c5cae9;border-radius:8px;padding:14px;text-align:center;cursor:pointer;color:#9fa8da;font-size:12px;transition:all .15s}
+.sup-slot-empty:hover{border-color:#3f51b5;color:#3f51b5}
+.sup-slot-filled{border-radius:8px;overflow:hidden;cursor:pointer}
+</style></head><body>
+<div class="header">
+  <img src="${logoPath}" onerror="this.style.display='none'" alt="PsicoTEAM">
+  <div class="pac-info">
+    <h1>${nomePac}</h1>
+    <p>${convenio}${cartaoNum?' · Cartão: '+cartaoNum:''} · ${dataHoje}</p>
+    ${resp1?`<p style="font-size:11px;color:#555;margin-top:2px">👤 Responsável: ${resp1}${parent?' ('+parent+')':''}${telR1?' · '+telR1:''}</p>`:''}
+  </div>
+</div>
+<table>
+  <thead>
+    <tr>
+      <th class="hora">Horários</th>
+      ${thDias}
+    </tr>
+  </thead>
+  <tbody>${rows}</tbody>
+</table>
+<div class="footer">Clínica PsicoTEAM · Acreditamos nas possibilidades · Impresso em ${new Date().toLocaleDateString('pt-BR')}</div>
+<script>window.onload=()=>window.print()<\/script>
+</body></html>`)
+  w.document.close()
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+checkMode()
+loadData()
+</script>
+</body>
+</html>
